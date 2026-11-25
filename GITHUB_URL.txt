@@ -1,2 +1,2 @@
-https://github.com/TODO/weekly-skill
-README.md
+https://github.com/cdw114/weekly-skill
+SKILL.md
