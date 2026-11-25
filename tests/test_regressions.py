@@ -197,6 +197,15 @@ class OCRAndEvidenceTests(unittest.TestCase):
 
 @unittest.skipIf(parser.fitz is None, "PyMuPDF unavailable")
 class PDFIntegrationTests(unittest.TestCase):
+    def test_rendered_scan_can_be_encoded_without_pillow(self):
+        with parser.fitz.open() as doc, patch.dict(sys.modules, {"PIL": None}):
+            page = doc.new_page(width=200, height=100)
+            image = parser.render_page(page, 72)
+            self.assertIsInstance(image, parser.fitz.Pixmap)
+            encoded = parser._img_to_png_bytes(image)
+            decoded = parser.fitz.Pixmap(encoded)
+            self.assertEqual((decoded.width, decoded.height), (200, 100))
+
     def test_ocr_uses_display_rotation_and_returns_unrotated_coordinates(self):
         fitz = parser.fitz
         with fitz.open() as doc:
@@ -296,8 +305,8 @@ class PDFIntegrationTests(unittest.TestCase):
                 scan.new_page().insert_image(page.rect, pixmap=page.get_pixmap(dpi=250))
                 scan.save(pdf)
             doc = parser.parse_document(str(pdf), str(root/"out"), lang="chi_sim", ocr="tesseract", dpi=250, quiet=True)
-            self.assertIn(1, doc["status"]["pages_ocr"])
-            self.assertIn(phrase, "".join("".join(b["text"].split()) for b in doc["blocks"]))
+            self.assertIn(1, doc["status"]["pages_ocr"], doc["status"]["notes"])
+            self.assertIn(phrase, "".join("".join(b["text"].split()) for b in doc["blocks"]), doc["status"]["notes"])
             self.assertTrue(any(b["bbox"] for b in doc["blocks"]))
 
 

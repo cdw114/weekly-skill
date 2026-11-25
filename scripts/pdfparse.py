@@ -362,10 +362,11 @@ _OCR_CACHE: Dict[str, Any] = {}
 
 def _img_to_png_bytes(img) -> bytes:
     import io
-    if hasattr(img, "save"):
-        buf = io.BytesIO(); img.save(buf, format="PNG"); return buf.getvalue()
-    pix = img
-    return pix.tobytes("png")
+    if isinstance(img, fitz.Pixmap):
+        return img.tobytes("png")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def _lines_from_text_layout(text: str, page, scale: float, engine: str) -> List[Line]:
@@ -494,7 +495,10 @@ def ocr_page(page, engine: str, lang: str, dpi: int) -> Tuple[List[Line], str]:
             _OCR_CACHE[cache_key] = PaddleOCR(use_angle_cls=True, lang=("ch" if "ch" in lang else "en"), show_log=False)
         eng = _OCR_CACHE[cache_key]
         import numpy as np
-        image = np.asarray(img) if hasattr(img, "save") else np.frombuffer(img.samples, dtype=np.uint8).reshape(img.height, img.width)
+        if isinstance(img, fitz.Pixmap):
+            image = np.frombuffer(img.samples, dtype=np.uint8).reshape(img.height, img.width)
+        else:
+            image = np.asarray(img)
         result = eng.ocr(np.repeat(image[:, :, None], 3, axis=2), cls=True)
         for page_res in (result or []):
             for box, (text, conf) in (page_res or []):
