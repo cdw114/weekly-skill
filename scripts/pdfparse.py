@@ -404,8 +404,21 @@ def ocr_engines(requested: str) -> List[str]:
     return [engine for engine in candidates if available(engine)]
 
 
+def _tesseract_word_groups(tsv):
+    import csv
+    import io
+
+    groups = defaultdict(list)
+    for row in csv.DictReader(io.StringIO(tsv), delimiter="\t", quoting=csv.QUOTE_NONE):
+        conf = float(row["conf"])
+        text = row.get("text", "").strip()
+        if conf >= 0 and text:
+            key = (row["block_num"], row["par_num"], row["line_num"])
+            groups[key].append((int(row["left"]), int(row["top"]), int(row["width"]), int(row["height"]), text, conf))
+    return groups
+
+
 def _run_tesseract_cli(img, exe: str, lang: str, page):
-    import subprocess, tempfile, csv, io
     requested = lang.split("+")
     active = requested
     if len(requested) > 1:
@@ -414,26 +427,34 @@ def _run_tesseract_cli(img, exe: str, lang: str, page):
         active = [code for code in requested if code in installed]
         if not active:
             raise RuntimeError(f"Tesseract has none of the requested languages: {lang}")
-    fd, path = tempfile.mkstemp(suffix=".png"); os.close(fd)
-    try:
-        Path(path).write_bytes(_img_to_png_bytes(img))
-        tsv = subprocess.run([exe, path, "stdout", "-l", "+".join(active), "tsv"], capture_output=True,
-                             encoding="utf-8", errors="replace", timeout=55, check=True).stdout
-    finally:
-        try: os.unlink(path)
-        except Exception: pass
+    language = "+".join(active)
+    with tempfile.TemporaryDirectory(prefix="weekly-tesseract-") as work:
+        image_path = Path(work)/"page.png"
+        image_path.write_bytes(_img_to_png_bytes(img))
+        command = [exe, str(image_path), "stdout", "-l", language]
+        deadline = time.monotonic() + 55
+
+        def read_words(mode):
+            tsv = subprocess.run([*command, "--psm", mode, "tsv"], capture_output=True,
+                                 encoding="utf-8", errors="replace", check=True,
+                                 timeout=max(0.01, deadline - time.monotonic())).stdout
+            return _tesseract_word_groups(tsv)
+
+        groups = read_words("3")
+        mode = "3"
+        words = [word for line in groups.values() for word in line]
+        if sum(len(word[4]) for word in words) < 30:
+            try:
+                sparse = read_words("11")
+            except (subprocess.SubprocessError, ValueError):
+                if not groups:
+                    raise
+            else:
+                current = sum(len(word[4]) * word[5] for word in words)
+                alternative = sum(len(word[4]) * word[5] for line in sparse.values() for word in line)
+                if alternative > current:
+                    groups, mode = sparse, "11"
     scale = page.rect.width / getattr(img, "width", page.rect.width)
-    rows = list(csv.DictReader(io.StringIO(tsv), delimiter="\t", quoting=csv.QUOTE_NONE))
-    groups: Dict[tuple, list] = defaultdict(list)
-    for r in rows:
-        try:
-            conf = float(r.get("conf", "-1"))
-        except Exception:
-            conf = -1
-        if conf < 0 or not (r.get("text") or "").strip():
-            continue
-        groups[(r["block_num"], r["par_num"], r["line_num"])].append(
-            (int(r["left"]), int(r["top"]), int(r["width"]), int(r["height"]), r["text"], conf))
     lines: List[Line] = []
     for key in sorted(groups, key=lambda k: (min(w[1] for w in groups[k]), min(w[0] for w in groups[k]))):
         ws = sorted(groups[key], key=lambda w: w[0])
@@ -441,8 +462,8 @@ def _run_tesseract_cli(img, exe: str, lang: str, page):
         conf = sum(w[5] for w in ws) / len(ws) / 100.0
         lines.append(Line(" ".join(w[4] for w in ws), (x0 * scale, y0 * scale, x1 * scale, y1 * scale),
                           max(4.0, (y1 - y0) * scale * 0.75), "ocr:tesseract", False, False, page.number,
-                          meta={"ocr_conf": round(conf, 3), "ocr_language": "+".join(active),
-                                "uncertain": active != requested}))
+                          meta={"ocr_conf": round(conf, 3), "ocr_language": language, "tesseract_psm": mode,
+                                "uncertain": active != requested or min(w[5] for w in ws) < 100 * OCR_LOW_CONF}))
     return lines
 
 

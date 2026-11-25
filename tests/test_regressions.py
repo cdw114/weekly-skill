@@ -211,6 +211,21 @@ class OCRAndEvidenceTests(unittest.TestCase):
 
 @unittest.skipIf(parser.fitz is None, "PyMuPDF unavailable")
 class PDFIntegrationTests(unittest.TestCase):
+    def test_tesseract_checks_sparse_layout_when_default_finds_very_little(self):
+        with parser.fitz.open() as doc:
+            page = doc.new_page(width=200, height=100)
+            image = page.get_pixmap(dpi=72)
+            header = "block_num\tpar_num\tline_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+            default = header + "1\t1\t1\t40\t20\t60\t15\t90\t科学\n"
+            sparse = (header + "1\t1\t1\t10\t20\t25\t15\t96\t中国\n"
+                      + "1\t1\t1\t40\t20\t60\t15\t90\t科学\n")
+            completed = [subprocess.CompletedProcess([], 0, tsv) for tsv in (default, sparse)]
+            with patch.object(subprocess, "run", side_effect=completed):
+                lines = parser._run_tesseract_cli(image, "tesseract", "chi_sim", page)
+            self.assertEqual(lines[0].text, "中国 科学")
+            self.assertEqual(lines[0].meta["tesseract_psm"], "11")
+            self.assertEqual(lines[0].bbox, (10, 20, 100, 35))
+
     def test_rendered_scan_can_be_encoded_without_pillow(self):
         with parser.fitz.open() as doc, patch.dict(sys.modules, {"PIL": None}):
             page = doc.new_page(width=200, height=100)
@@ -315,7 +330,10 @@ class PDFIntegrationTests(unittest.TestCase):
             with parser.fitz.open() as native, parser.fitz.open() as scan:
                 page = native.new_page()
                 phrase = "中国科学文献"
-                page.insert_text((50, 92), phrase, fontname="china-s", fontsize=34)
+                for y, text in [(92, "中国科学文献提供研究资料"),
+                                (124, "研究结果记录在实验报告中"),
+                                (156, "文献内容需要核对原始页面")]:
+                    page.insert_text((50, y), text, fontname="china-s", fontsize=18)
                 scan.new_page().insert_image(page.rect, pixmap=page.get_pixmap(dpi=250))
                 scan.save(pdf)
             doc = parser.parse_document(str(pdf), str(root/"out"), lang="chi_sim", ocr="tesseract", dpi=250, quiet=True)
