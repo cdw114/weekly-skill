@@ -15,7 +15,6 @@ Usage (inside the Skill directory):
 from __future__ import annotations
 
 import argparse
-import glob
 import json
 import math
 import os
@@ -28,7 +27,9 @@ from typing import Any, Dict, List, Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from output_contract import contract_errors, evidence_errors, project_case_fields
+from output_contract import complete_verified_answers, contract_errors, evidence_errors, project_case_fields, unfinished_questions
+
+REVIEW_REASONS = ("candidate answers need source verification", "output contract requires review")
 
 
 def _log(msg: str) -> None:
@@ -46,76 +47,73 @@ def _norm(s: str) -> str:
 
 
 def find_pdf(case: dict, case_path: str, extra_dirs: List[str]) -> Optional[str]:
-    """Locate the input PDF. If the case names a PDF explicitly and that file is missing, return None
-    (never silently fall back to another PDF nearby); otherwise look for any PDF near case.json / under /input."""
-    cands: List[str] = []
+    """Use the explicit PDF or the single unambiguous case material."""
+    roots = list(dict.fromkeys([os.path.dirname(os.path.abspath(case_path)), *extra_dirs]))
+    roots = [Path(root) for root in roots if root]
+    explicit = []
+    materials = {}
+    primary_roles = {"paper", "main", "mainpaper", "primary", "primarypaper", "article", "mainarticle",
+                     "maindocument", "sourcedocument", "正文", "论文", "原文"}
+    secondary_roles = {"appendix", "attachment", "supplement", "supplementary", "supplementarymaterial",
+                       "supplementarymaterials", "supportinginformation", "附件", "补充材料", "附录"}
+
+    def pdf_path(item):
+        names = (item,) if isinstance(item, str) else (
+            item.get(key) for key in ("local_path", "path", "file", "name", "url")
+        ) if isinstance(item, dict) else ()
+        return next((name for name in names if isinstance(name, str) and name.lower().endswith(".pdf")), None)
+
     for key in ("pdf", "pdf_path", "file", "file_path", "input", "input_path", "document", "path", "source"):
-        v = case.get(key)
-        if isinstance(v, str) and v.lower().endswith(".pdf"):
-            cands.append(v)
-        elif isinstance(v, dict):
-            for k2 in ("path", "file", "url", "local_path"):
-                if isinstance(v.get(k2), str) and v[k2].lower().endswith(".pdf"):
-                    cands.append(v[k2])
+        if path := pdf_path(case.get(key)):
+            explicit.append(path)
     for key in ("files", "inputs", "materials", "attachments", "artifacts"):
         v = case.get(key)
         if isinstance(v, list):
-            for it in v:
-                if isinstance(it, str) and it.lower().endswith(".pdf"):
-                    cands.append(it)
-                elif isinstance(it, dict):
-                    for k2 in ("path", "file", "local_path", "name"):
-                        if isinstance(it.get(k2), str) and it[k2].lower().endswith(".pdf"):
-                            cands.append(it[k2])
-    for c in cands:
-        if os.path.isfile(c):
-            return c
-        if not os.path.isabs(c):
-            for d in extra_dirs:
-                p2 = os.path.join(d, c)
-                if os.path.isfile(p2):
-                    return p2
-    if cands:
-        find_pdf.alternates = []
-        find_pdf.missing_explicit = cands   # the case named a PDF that does not exist: do not guess
+            for item in v:
+                path = pdf_path(item)
+                if not path:
+                    continue
+                role = _norm(str(item.get("role") or "")) if isinstance(item, dict) else ""
+                materials.setdefault(path, set()).add(role or ("attachment" if key == "attachments" else ""))
+
+    def locate(path):
+        if "://" in path:
+            return None
+        candidate = Path(path)
+        for local in ([candidate] if candidate.is_absolute() else [root/candidate for root in roots]):
+            if local.is_file():
+                return str(local.resolve())
         return None
-    find_pdf.missing_explicit = []  # type: ignore[attr-defined]
-    # fall back to any PDF near the case file / under /input
-    search = list(extra_dirs) + [os.path.dirname(case_path), "/input", "/app/input", "/data"]
-    seen = set()
-    hits: List[str] = []
-    for d in search:
-        if d and os.path.isdir(d) and d not in seen:
-            seen.add(d)
-            hits.extend(sorted(glob.glob(os.path.join(d, "**", "*.pdf"), recursive=True)))
-    hits = list(dict.fromkeys(hits))
+
+    def choose(paths):
+        choices = {}
+        for path in paths:
+            resolved = locate(path)
+            choices[resolved or path] = resolved
+        if len(choices) > 1:
+            raise ValueError(f"multiple candidate PDFs: {', '.join(list(choices)[:8])}. Select the source with --pdf.")
+        if choices:
+            path, resolved = next(iter(choices.items()))
+            if not resolved:
+                raise FileNotFoundError(f"input PDF not found: {path}. Supply the local path with --pdf.")
+            return resolved
+        return None
+
+    if explicit:
+        return choose(explicit)
+    primary = [path for path, roles in materials.items() if roles & primary_roles]
+    ordinary = [path for path, roles in materials.items() if not roles & secondary_roles]
+    if primary or ordinary:
+        return choose(primary or ordinary)
+
+    attachments = {locate(path) for path in materials}
+    hits = sorted({str(path.resolve()) for root in roots if root.is_dir()
+                   for path in root.rglob("*") if path.suffix.lower() == ".pdf" and path.is_file()} - attachments)
     if hits:
-        # prefer a name that matches the case id / title; among the rest prefer a PDF that actually has a text layer
-        # (a scanned supplement is usually larger than the paper, so size is a poor signal), then more pages
-        key = _norm(str(case.get("case_id") or case.get("id") or "") + " " + str(case.get("title") or ""))
-
-        def probe(h: str):
-            try:
-                import fitz
-                d = fitz.open(h)
-                n = len(d)
-                chars = sum(len(d[i].get_text()) for i in range(min(3, n)))
-                d.close()
-                return n, chars
-            except Exception:
-                return 0, 0
-
-        def rank(h: str):
-            name = _norm(os.path.basename(h))
-            name_hit = 0 if key and (name in key or key[:12] in name) else 1
-            n, chars = probe(h)
-            return (name_hit, 0 if chars > 100 else 1, -n)
-        hits.sort(key=rank)
-        find_pdf.alternates = hits[1:]
-        return hits[0]
-    find_pdf.alternates = []
+        return choose(hits)
+    if materials:
+        raise ValueError("only supplements or attachments were listed. Select the requested source with --pdf.")
     return None
-find_pdf.alternates = []  # type: ignore[attr-defined]
 
 
 def find_task_md(case_path: str) -> Optional[str]:
@@ -206,8 +204,7 @@ def fallback_result(case, case_path, out_dir, state, reason, started):
     return project_case_fields(case, result, {}, out_dir)
 
 
-def build_result(case: dict, case_path: str, parsed: dict, out_dir: str,
-                 started: float, extra: Dict[str, Any]) -> dict:
+def build_result(case: dict, case_path: str, parsed: dict, out_dir: str, started: float) -> dict:
     case_id = case_identifier(case, case_path)
     st = parsed["status"]
     questions_out = []
@@ -255,6 +252,7 @@ def build_result(case: dict, case_path: str, parsed: dict, out_dir: str,
         "evidence": {
             "block_index": grounded_evidence(parsed),
             "pages": [{"page": p["page"], "width": p["width"], "height": p["height"], "text_source": p["text_source"],
+                       "coordinate_space": p["coordinate_space"], "rotation": p["rotation"],
                        "ocr_mean_conf": p.get("ocr_mean_conf"), "columns": (p.get("layout") or {}).get("columns")} for p in parsed["pages"]],
             "artifacts": {
                 "document_json": "document.json",
@@ -276,16 +274,64 @@ def build_result(case: dict, case_path: str, parsed: dict, out_dir: str,
         "tools": parsed["parser"],
         "runtime": {"python": sys.version.split()[0], "pdfparse": parsed["parser"]["version"]},
     }
-    result.update(extra)
     return project_case_fields(case, result, parsed, out_dir)
 
 
-def _validate(case, out_dir):
+def _review_summary(result, out_dir):
+    status = result["status"]
+    uncertainty = result["uncertainty"]
+    print(f"{Path(out_dir)/'result.json'} | {status['state']} | pages {status['pages_parsed']}/{status['pages_total']}")
+    if status["reason"]:
+        print(f"Reason: {status['reason']}")
+    for key in ("unreadable_pages", "not_done"):
+        if pages := uncertainty.get(key):
+            print(f"{key}: {pages[:12]} ({len(pages)} total)")
+    for message in uncertainty.get("contract_errors", [])[:8]:
+        print(f"Required output: {message[:240]}")
+    questions = (result.get("result") or {}).get("questions", [])
+    pending = unfinished_questions(questions)
+    for q in pending[:8]:
+        hits = q.get("evidence", [])
+        regions = ", ".join(f"page {hit['page']} {hit['id']}" for hit in hits if hit.get("id"))
+        print(f"Check: {q['question'][:200]} | {regions or 'search the source PDF'}")
+        if q.get("answer"):
+            print(f"  Candidate: {q['answer'][:220]}")
+    if len(pending) > 8:
+        print(f"See result.questions for all {len(pending)} questions.")
+
+
+def _validate(case, args):
+    out_dir = args.out
     result = _read_json(os.path.join(out_dir, "result.json"))
     if not isinstance(result, dict):
         raise ValueError("result.json must be an object")
-    errors = contract_errors(case, result, out_dir) + evidence_errors(case, result)
-    print(json.dumps({"valid": not errors, "errors": errors}, ensure_ascii=True))
+    body = result.get("result")
+    questions = body.get("questions", []) if isinstance(body, dict) else []
+    status = result.get("status")
+    if (args.finalize and isinstance(body, dict) and isinstance(status, dict)
+        and isinstance(questions, list) and isinstance(result.get("uncertainty"), dict)):
+        complete_verified_answers(result, questions)
+        result["uncertainty"]["questions_to_verify"] = [q["question"] for q in unfinished_questions(questions)
+                                                        if isinstance(q.get("question"), str)]
+        result["uncertainty"]["contract_errors"] = contract_errors(case, result, out_dir)
+        status["notes"] = [note for note in status.get("notes", [])
+                           if not note.startswith("Output contract needs completion: ")]
+        if (status.get("state") == "partial" and status.get("reason") in REVIEW_REASONS
+            and not unfinished_questions(questions)):
+            status["state"] = "success"
+    errors = contract_errors(case, result, out_dir) + evidence_errors(case, result, out_dir)
+    if isinstance(body, dict) and isinstance(questions, list):
+        expected = collect_questions(case, args.task or find_task_md(args.case), args.questions)
+        present = {q["question"] for q in questions if isinstance(q, dict) and isinstance(q.get("question"), str)}
+        errors.extend(f"result.questions: missing question {q!r}" for q in expected if q not in present)
+    if args.finalize and isinstance(status, dict):
+        if status.get("state") == "success" and errors:
+            status.update(state="partial", reason="output contract requires review")
+        elif status.get("state") == "success":
+            status["reason"] = None
+        write_result(out_dir, result)
+    print(json.dumps({"valid": not errors, "state": status.get("state") if isinstance(status, dict) else None,
+                      "errors": errors[:20], "error_count": len(errors)}, ensure_ascii=True))
     return int(bool(errors))
 
 
@@ -303,15 +349,14 @@ def _copy_artifacts(stage, out_dir):
 
 def _run_case(args, case, started):
     args.task = args.task or find_task_md(args.case)
-    pdf = args.pdf or find_pdf(case, args.case, [os.path.dirname(args.case), "/input", "/app/input"])
+    pdf = args.pdf or find_pdf(case, args.case, ["/input", "/app/input", "/data"])
     if not pdf or not os.path.isfile(pdf):
-        missing = [args.pdf] if args.pdf else getattr(find_pdf, "missing_explicit", [])
-        raise FileNotFoundError(f"input PDF not found (case={args.case}, requested={missing})")
-    _log(f"PDF: {pdf}")
+        raise FileNotFoundError(f"input PDF not found (case={args.case}, requested={args.pdf}). Supply it with --pdf.")
     import pdfparse as parser
 
     if parser.fitz is None:
-        raise RuntimeError("PyMuPDF is required. Install it with python -m pip install -r requirements.txt.")
+        requirements = Path(HERE).parent/"requirements.txt"
+        raise RuntimeError(f'PyMuPDF is required. Try python3 -m pip install -r "{requirements}" and rerun.')
     lang = args.lang or case.get("ocr_language") or case.get("language")
     if lang in ("zh", "zh-CN", "Chinese", "中文"):
         lang = "chi_sim+eng"
@@ -331,16 +376,11 @@ def _run_case(args, case, started):
                                       password=args.password, questions=questions or None, quiet=True,
                                       deadline=started + args.max_seconds)
         _copy_artifacts(Path(temp), args.out)
-    extra = {}
-    alts = getattr(find_pdf, "alternates", []) if not args.pdf else []
-    if alts:
-        extra["input_candidates"] = {"chosen": pdf, "alternates": alts}
-        parsed["status"]["notes"].append(f"{len(alts)} other PDF(s) were not parsed. Verify the selected source or re-run with --pdf.")
-    result = build_result(case, args.case, parsed, args.out, started, extra)
+    result = build_result(case, args.case, parsed, args.out, started)
     write_result(args.out, result)
-    st = result["status"]
-    _log(f"state={st['state']} pages={st['pages_parsed']}/{st['pages_total']} unreadable={st['pages_unreadable']}")
-    return int(st["state"] == "failed")
+    _log(f"PDF: {pdf}")
+    _review_summary(result, args.out)
+    return int(result["status"]["state"] == "failed")
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -357,7 +397,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--pages", help="One-based page range, for example 1-3,5")
     ap.add_argument("--password")
     ap.add_argument("--max-seconds", type=float, default=800.0, help="Case time budget including OCR and layout")
-    ap.add_argument("--validate-result", action="store_true", help="Check the completed result against the case contract")
+    final = ap.add_mutually_exclusive_group()
+    final.add_argument("--validate-result", action="store_true", help="Check the result without modifying it")
+    final.add_argument("--finalize", action="store_true", help="Refresh projected answers, then validate the result")
     args = ap.parse_args(argv)
     if not math.isfinite(args.max_seconds) or args.max_seconds < 0:
         ap.error("--max-seconds must be finite and nonnegative")
@@ -370,15 +412,15 @@ def main(argv: Optional[List[str]] = None) -> int:
             if not isinstance(loaded, dict):
                 raise ValueError("case.json must be an object")
             case = loaded
-        elif args.validate_result or not args.pdf:
+        elif args.validate_result or args.finalize or not args.pdf:
             raise FileNotFoundError(f"case file not found: {args.case}")
-        if args.validate_result:
-            return _validate(case, args.out)
+        if args.validate_result or args.finalize:
+            return _validate(case, args)
         os.makedirs(args.work, exist_ok=True)
         write_result(args.out, fallback_result(case, args.case, args.out, "partial", "PDF analysis started", start))
         return _run_case(args, case, start)
     except Exception as exc:
-        if args.validate_result:
+        if args.validate_result or args.finalize:
             print(json.dumps({"valid": False, "errors": [str(exc)]}, ensure_ascii=True))
             return 1
         reason = f"{type(exc).__name__}: {exc}"

@@ -24,21 +24,21 @@
 mkdir -p work output
 python3 scripts/run_case.py --case examples/case.example.json --work work --out output
 ```
-实际输出：
+输出节选：
 ```
 [run_case] PDF: …/synth_paper.pdf
-[run_case] 3 question(s) to answer: ['What is the table cell accuracy …', 'How many scanned …', 'What is the running time …']
-[run_case] done: state=success pages=3/3 unreadable=[] tables=3 blocks=55 -> …/output/result.json
+output/result.json | partial | pages 3/3
+Reason: candidate answers need source verification
 ```
 
 ## 示意输出
 - `result_excerpt.json` — `result.json` 的精简版：`status`、`document` 元数据、`sections` 大纲、前 12 个 `reading_order` id、Table 1 摘要、`equations`、3 个问答（各带 `answer_block` + `evidence`）、`evidence.pages`、`uncertainty`。
 - `document_excerpt.md` — `document.md` 的前 48 行：标题、作者、单位、摘要、关键词、大纲（1 / 1.1 / 2 … 6）、正文起始。
 
-问答示例（节选）：
+核对后的问答示例（节选）。改完答案和证据块后，用同样的参数加 `--finalize` 同步证据并校验：
 ```json
 {"question": "What is the running time per page?", "answer": "The runtime of the full pipeline is 1.8 s per page on a single CPU core, compared with 4.1 s for the strongest baseline",
- "status": "found", "confidence": "high", "answer_block": "p2-b03",
+ "status": "verified", "confidence": "high", "answer_block": "p2-b03",
  "evidence": [{"id": "p2-b03", "page": 2, "bbox": [312.0, 79.4, 550.0, 168.9], "contains_answer": true}]}
 ```
 `answer_block` 可在 `evidence.block_index` 中找到，对应第 2 页右栏顶部的段落。

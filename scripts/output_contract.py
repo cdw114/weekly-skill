@@ -1,10 +1,12 @@
 """Project parser results into the case contract and check the final deliverables."""
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 
 BASE_FIELDS = {"case_id", "status", "result", "evidence", "uncertainty"}
+ANSWER_ALIASES = ("answers", "qa")
 _METADATA = {"$schema", "$id", "$defs", "definitions", "type", "properties", "required",
              "fields", "description", "title", "additionalProperties", "artifacts"}
 _TYPES = {"object": dict, "array": list, "string": str, "integer": int, "number": (int, float),
@@ -104,12 +106,12 @@ def _field_errors(value, spec, field, out_dir):
     return errors
 
 
-def _artifact_exists(value, out_dir):
+def _artifact_exists(value, out_dir, directory=False):
     try:
         root = Path(out_dir).resolve()
         path = (root / value).resolve()
-        return path.is_relative_to(root) and path.is_file()
-    except (OSError, ValueError):
+        return path != root and path.is_relative_to(root) and (path.is_dir() if directory else path.is_file())
+    except (OSError, ValueError, RuntimeError):
         return False
 
 
@@ -161,6 +163,8 @@ def project_case_fields(case, result, parsed, out_dir):
         value = known_files.get(name) if _is_file(spec) else aliases.get(name)
         if value is not None and not _field_errors(value, spec, name, out_dir):
             result[name] = value
+            if name in ANSWER_ALIASES and value is qa:
+                notes.setdefault("projected_answer_fields", []).append(name)
     issues = contract_errors(case, result, out_dir)
     notes["contract_errors"] = issues
     if issues:
@@ -171,8 +175,43 @@ def project_case_fields(case, result, parsed, out_dir):
     return result
 
 
-def evidence_errors(case, result):
-    expected = case.get("case_id", case.get("id"))
+def unfinished_questions(questions):
+    return [q for q in questions if isinstance(q, dict) and (
+        q.get("requires_verification") or q.get("status") not in ("found", "verified", "not_found")
+    )]
+
+
+def _valid_box(box):
+    return (isinstance(box, list) and len(box) == 4
+            and all(type(v) in (int, float) and math.isfinite(v) for v in box)
+            and box[0] < box[2] and box[1] < box[3])
+
+
+def complete_verified_answers(result, questions):
+    """Resolve a reviewer-selected block to a verifiable source and synchronize projected answers."""
+    evidence = result.get("evidence")
+    blocks = evidence.get("block_index", []) if isinstance(evidence, dict) else []
+    anchors = {b["id"]: b for b in blocks if isinstance(b, dict) and isinstance(b.get("id"), str)}
+    for q in questions:
+        if not isinstance(q, dict) or q.get("status") != "verified":
+            continue
+        anchor = q.get("answer_block")
+        source = anchors.get(anchor) if isinstance(anchor, str) else None
+        if not source or not _valid_box(source.get("bbox")) or not str(q.get("answer") or "").strip():
+            continue
+        if q.get("requires_verification"):
+            result.setdefault("changes", []).append({"what": f"Verified answer: {q.get('question', '')}",
+                                                     "why": "Reviewer selected an original PDF source block",
+                                                     "source_blocks": [anchor], "file": "result.json"})
+        q.update(requires_verification=False, confidence="high", evidence=[{**source, "contains_answer": True}],
+                 evidence_text=[source.get("text", "")])
+    for name in result["uncertainty"].get("projected_answer_fields", []):
+        if name in ANSWER_ALIASES:
+            result[name] = questions
+
+
+def evidence_errors(case, result, out_dir):
+    expected = next((case[key] for key in ("case_id", "id", "name") if case.get(key) is not None), None)
     errors = []
     if expected is not None and result.get("case_id") != expected:
         errors.append("case_id differs from the input")
@@ -180,26 +219,66 @@ def evidence_errors(case, result):
     if not isinstance(status, dict) or status.get("state") not in ("success", "partial", "failed", "uncertain", "refused"):
         errors.append("status.state is missing or invalid")
         return errors
-    body = result.get("result") or {}
-    evidence = result.get("evidence") or {}
-    if not isinstance(body, dict) or not isinstance(evidence, dict):
-        return errors
-    anchors = {b["id"]: b for b in evidence.get("block_index", []) if isinstance(b, dict) and isinstance(b.get("id"), str)}
-    questions = body.get("questions") or []
+    body = result.get("result")
+    evidence = result.get("evidence")
+    uncertainty = result.get("uncertainty")
+    if not isinstance(evidence, dict) or not isinstance(uncertainty, dict):
+        return errors + ["evidence and uncertainty must be objects"]
+    if body is None and status["state"] in ("failed", "partial", "refused"):
+        body = {}
+    if not isinstance(body, dict):
+        return errors + ["result must be an object for a completed parse"]
+    artifacts = evidence.get("artifacts", {})
+    if not isinstance(artifacts, dict):
+        return errors + ["evidence.artifacts must be an object"]
+    for name, path in artifacts.items():
+        if path is not None and (not isinstance(path, str) or not _artifact_exists(path, out_dir, name.endswith("_dir"))):
+            errors.append(f"evidence.artifacts.{name}: missing or outside the output directory ({path!r})")
+    pages_dir = artifacts.get("pages_dir")
+    pages = evidence.get("pages", [])
+    if isinstance(pages_dir, str) and isinstance(pages, list) and _artifact_exists(pages_dir, out_dir, directory=True):
+        for page in pages:
+            number = page.get("page") if isinstance(page, dict) else None
+            if type(number) is int and not _artifact_exists(str(Path(pages_dir)/f"page_{number:03d}.txt"), out_dir):
+                errors.append(f"evidence.pages: missing page_{number:03d}.txt in {pages_dir}")
+    blocks = evidence.get("block_index", [])
+    questions = body.get("questions", [])
+    if not isinstance(blocks, list) or not isinstance(questions, list):
+        return errors + ["evidence.block_index and result.questions must be arrays"]
+    anchors = {b["id"]: b for b in blocks if isinstance(b, dict) and isinstance(b.get("id"), str)}
+    specs = field_specs(case)
+    for name in ANSWER_ALIASES:
+        alias = result.get(name)
+        if isinstance(alias, list) and (name in uncertainty.get("projected_answer_fields", [])
+                                       or not _field_errors(questions, specs.get(name, {}), name, out_dir)):
+            if alias != questions and (name in specs or name in uncertainty.get("projected_answer_fields", [])):
+                errors.append(f"{name}: differs from result.questions (use --finalize to refresh a projected answer list)")
     for q in questions:
-        if not isinstance(q, dict) or q.get("status") not in ("found", "verified"):
+        if not isinstance(q, dict) or not isinstance(q.get("question"), str):
+            errors.append("result.questions: each answer needs its question text")
+            continue
+        if q.get("status") not in ("found", "verified"):
             continue
         anchor = q.get("answer_block")
         candidates = q.get("evidence", [])
-        source = anchors.get(anchor)
-        if (q.get("requires_verification") is True or not q.get("answer") or not source or not any(
+        source = anchors.get(anchor) if isinstance(anchor, str) else None
+        if (q.get("requires_verification") or not str(q.get("answer") or "").strip() or not source
+            or not isinstance(candidates, list) or not any(
             isinstance(hit, dict) and hit.get("id") == anchor and hit.get("page") == source.get("page")
-            and hit.get("bbox") == source.get("bbox") and bool(hit.get("bbox")) for hit in candidates
+            and type(hit.get("page")) is int and hit["page"] > 0
+            and hit.get("bbox") == source.get("bbox") and _valid_box(hit["bbox"]) for hit in candidates
         )):
             errors.append(f"Question {q.get('question', '')!r}: confirm the answer and its source block")
     if status["state"] == "success":
-        if (result.get("uncertainty") or {}).get("not_done"):
-            errors.append("success cannot have unfinished pages")
-        if any(isinstance(q, dict) and q.get("requires_verification") for q in questions):
-            errors.append("Candidate answers still require source checks")
+        total, parsed = status.get("pages_total"), status.get("pages_parsed")
+        if type(total) is not int or total < 1 or type(parsed) is not int or parsed != total:
+            errors.append("status: success requires pages_parsed == pages_total > 0")
+        elif "pages" in evidence:
+            numbers = [p.get("page") for p in pages if isinstance(p, dict)] if isinstance(pages, list) else []
+            if len(numbers) != total or any(type(n) is not int for n in numbers) or sorted(numbers) != list(range(1, total + 1)):
+                errors.append("evidence.pages: success requires one evidence record per input page")
+        if uncertainty.get("not_done") or status.get("pages_unreadable") or uncertainty.get("unreadable_pages"):
+            errors.append("status: success cannot have unreadable or unfinished pages")
+        if unfinished_questions(questions):
+            errors.append("result.questions: unfinished answers still need source checks")
     return errors

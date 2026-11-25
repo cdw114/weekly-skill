@@ -22,7 +22,7 @@ pip install rapidocr_onnxruntime          # 可选：扫描件 OCR
 ### 从 case.json 运行（平台/比赛用法）
 ```bash
 mkdir -p /app/work /app/output
-python3 scripts/run_case.py --case /input/case.json --work /app/work --out /app/output
+python3 scripts/run_case.py
 ```
 产出：
 ```
@@ -65,7 +65,7 @@ python3 scripts/pdfparse.py paper.pdf out_dir --lang eng --ocr auto --pages 1-20
     "tables": [{"id": "p1-b26", "number": "1", "page": 1, "caption": "…", "rows": 6, "cols": 3, "markdown": "| … |"}],
     "figures": [...], "equations": [{"id": "p1-b22", "page": 1, "bbox": [...], "text": "…", "tag": "(1)"}],
     "references": [...], "footnotes": [...],
-    "questions": [{"question": "…", "answer": "…", "status": "found", "confidence": "high", "answer_block": "p2-b03",
+    "questions": [{"question": "…", "answer": "…", "status": "verified", "confidence": "high", "answer_block": "p2-b03",
                    "evidence": [{"id": "p2-b03", "page": 2, "bbox": [...], "contains_answer": true}]}]
   },
   "evidence": {"block_index": [{"id": "p1-b01", "page": 1, "type": "title", "bbox": [...], "text": "…"}],
@@ -76,7 +76,7 @@ python3 scripts/pdfparse.py paper.pdf out_dir --lang eng --ocr auto --pages 1-20
   "sources": [{"type": "file", "path": "/input/x.pdf", "sha256": "…", "pages": 12}]
 }
 ```
-runner 按 `output_contract` 映射可以确定的字段，例如 `outline`、`tables`、`answers`。通常 `markdown` 的值是正文，只有明确要求文件路径时才提供文件名。待补充内容记在 `uncertainty.contract_errors` 中，待复核问答记在 `uncertainty.questions_to_verify` 中。Agent 补充输出后运行 `python3 scripts/run_case.py --case /input/case.json --out /app/output --validate-result`。
+runner 根据 `output_contract` 映射可直接确定的字段，并在终端输出简短待办。核对原文后只需改 `result.questions` 的答案、状态和证据块 ID，补齐契约要求，再运行 `python3 scripts/run_case.py --finalize`。它会根据已确认的块 ID 补充证据，更新自动投影的答案字段，并校验页数、答案和文件。使用 `--validate-result` 可只做校验。输出 `valid` 表示校验状态，`state` 表示实际完成程度。
 
 ### document.json 块类型
 `title` `authors` `affiliation` `abstract_label` `abstract` `keywords` `heading` `paragraph` `list` `table` `table_caption` `figure` `caption` `equation` `footnote` `reference` `header` `footer` `page_number` `small_text` `other`
@@ -95,7 +95,7 @@ runner 按 `output_contract` 映射可以确定的字段，例如 `outline`、`t
 | 页眉页脚 | 归一化文本跨页重复（≥2 页）才判定；纯数字/符号不算；脚注永远不是页眉 | 不同页眉不误删正文；页码不污染表格 |
 | 分类 | 字号比 + 粗/斜体 + 正则（章节号 `1.`/`1.1`/`III.`/`A.`/`一、`、`Fig./Table`、`[n]`、`(N)`、列表符）；纯数字大字非标题 | 中英文混排、幻灯片数字 |
 | 表格 | `find_tables` 行列跨度 → 显式 `rowspan/colspan` grid；多层表头检测；续表按表头相似 + "continued" 链接 | 合并单元格、跨页续表 |
-| OCR | 页面文字 < 30 字符 → 200 dpi 渲染 → rapidocr/paddleocr/tesseract/ocr-tool；行级置信 < 0.80 标 `uncertain` | 扫描件；不猜 |
+| OCR | 无文本页或仅少量文字且有大幅图像的页 → 200 dpi 渲染 → 可用 OCR 引擎；行级置信 < 0.80 标 `uncertain` | 保留短文本页和识别依据 |
 | 问答 | 词干化 + bigram 加权 TF-IDF 检索块 → 取最相关句 → 标注 `answer_block` | 答案可核 |
 
 详细算法见 [references/method.md](references/method.md)。
@@ -135,7 +135,7 @@ python3 -m unittest discover -s tests -v
 
 ## 7. 文件清单
 ```
-SKILL.md                      Skill 入口（frontmatter + 执行流程 + 检查清单）
+SKILL.md                      Skill 入口（三步流程）
 README.md                     本文件
 requirements.txt              依赖
 GITHUB_URL.txt                公开仓库链接
@@ -147,8 +147,6 @@ references/method.md          算法细节
 references/limitations.md      限制与失败处理
 examples/README.md            最小示例（标明为示例）
 examples/case.example.json    示例输入
-examples/synth_paper.pdf      合成论文（examples/make_synth.py 生成，可复现）
-examples/synth_paper_scan.pdf 合成扫描件（无文字层）
 examples/make_synth.py        素材生成脚本（fpdf2，跨平台字体查找）
 examples/result_excerpt.json  示意输出（精简）
 examples/document_excerpt.md  示意输出（前 48 行）

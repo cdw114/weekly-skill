@@ -2,7 +2,7 @@
 
 目标：把 PDF 页面上的 glyph 流还原为**有结构、有顺序、可定位**的文档对象。所有判断只用几何 + 字体 + 文本特征，不依赖训练模型，保证可复现。
 
-坐标使用左上原点，单位为 pt。每页保存自己的宽度和高度。原文位置用 `bbox = [x0, y0, x1, y1]`，OCR 引擎只返回纯文本时使用 `bbox: null`。
+页面宽高和 `bbox = [x0, y0, x1, y1]` 使用未应用 PDF 页面旋转的坐标，以左上为原点，单位为 pt。页面记录保留原始 `rotation`。在按原始旋转显示的页面上绘制证据框时，用 PyMuPDF 的 `page.rotation_matrix` 转换。OCR 使用原始显示方向渲染，识别框转换回统一坐标系。纯文本 OCR 使用 `bbox: null`。
 
 ---
 
@@ -14,7 +14,7 @@
 - `Line` 字段：`text, bbox, size, font, bold, italic, page, block_no, meta`；属性 `x0,y0,x1,y1,cx,cy,width`。
 
 ## 2. 页面文字层判定与 OCR
-- `sum(len(line.text)) < 30` → 视为无文字层。
+- 无原生文字时尝试 OCR。有原生文字但不足 30 字符时，仅对至少一幅图像覆盖半页的页面尝试 OCR。短封面或章节页保留原生文字。对疑似扫描页，OCR 未取得更多内容时保留已提取文字并报告读取限制。
 - 自动模式按 rapidocr → paddleocr → tesseract CLI → `ocr-tool` CLI 逐页回退。引擎报错、超时、无文字或返回低置信文字都会触发下一次尝试。全部候选都低置信时保留质量最高的结果和实际来源。
 - 每个 OCR 行带 `meta.ocr_conf ∈ [0,1]`；`< OCR_LOW_CONF (0.80)` → `meta.uncertain=True`，块的 `flags` 加 `uncertain`。
 - 无几何信息的结果按返回顺序排版，输出坐标留空，整页块标 `uncertain`。每次 OCR 用独立进程，超时受剩余预算约束。预算保留版面分析和产物写出时间，尚未处理的页写入 `not_done`。

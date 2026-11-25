@@ -1,5 +1,7 @@
 """Regression tests for case outputs, deadlines, OCR fallback, and source-linked answers."""
 import json
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 import shutil
 import subprocess
@@ -48,13 +50,34 @@ class OutputContractTests(unittest.TestCase):
     def test_invalid_final_answer_source_is_rejected(self):
         box = [10, 20, 30, 40]
         hit = {"id": "p2-b01", "page": 2, "bbox": box}
-        result = {"case_id": "demo", "status": {"state": "success"}, "uncertainty": {},
+        result = {"case_id": "demo", "status": {"state": "success", "pages_total": 2, "pages_parsed": 2}, "uncertainty": {},
                   "evidence": {"block_index": [hit]},
                   "result": {"questions": [{"question": "How many?", "answer": "3", "status": "verified",
                                              "answer_block": hit["id"], "evidence": [{**hit, "page": 1}]}]}}
-        self.assertTrue(contract.evidence_errors({"case_id": "demo"}, result))
+        self.assertTrue(contract.evidence_errors({"case_id": "demo"}, result, "."))
         result["result"]["questions"][0]["evidence"] = [hit]
-        self.assertFalse(contract.evidence_errors({"case_id": "demo"}, result))
+        self.assertFalse(contract.evidence_errors({"case_id": "demo"}, result, "."))
+
+    def test_cli_rejects_partial_success_missing_files_and_stale_answers(self):
+        hit = {"id": "p1-b01", "page": 1, "bbox": [10, 20, 30, 40]}
+        verified = {"question": "What was recorded?", "answer": "315 K", "status": "verified",
+                    "answer_block": hit["id"], "evidence": [hit]}
+        case = {"case_id": "review", "output_contract": ["answers"]}
+        result = {"case_id": "review", "status": {"state": "success", "pages_total": 3, "pages_parsed": 1,
+                                                 "pages_unreadable": [1]},
+                  "uncertainty": {}, "result": {"questions": [verified]},
+                  "answers": [{**verified, "status": "candidate"}],
+                  "evidence": {"block_index": [hit], "artifacts": {"document_md": "missing.md"}}}
+        with tempfile.TemporaryDirectory() as temp, redirect_stdout(StringIO()) as output:
+            root = Path(temp)
+            case_path = root/"case.json"
+            case_path.write_text(json.dumps(case), encoding="utf-8")
+            run_case.write_result(root, result)
+            args = ["--case", str(case_path), "--out", temp, "--validate-result"]
+            self.assertEqual(run_case.main(args), 1)
+            errors = json.loads(output.getvalue())["errors"]
+        for expected in ("pages_parsed", "unreadable", "missing.md", "differs from result.questions"):
+            self.assertTrue(any(expected in error for error in errors), errors)
 
     def test_missing_input_keeps_case_and_failed_contract(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -72,6 +95,21 @@ class OutputContractTests(unittest.TestCase):
 
 
 class OCRAndEvidenceTests(unittest.TestCase):
+    def test_primary_pdf_overrides_earlier_supplement_and_missing_primary_is_reported(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root/"a-supplement.pdf").touch()
+            paper = root/"z-main-paper.pdf"
+            paper.touch()
+            materials = [{"path": "a-supplement.pdf", "role": "supplement"},
+                         {"path": "z-main-paper.pdf", "role": "paper"}]
+            self.assertEqual(run_case.find_pdf({"materials": materials}, str(root/"case.json"), []), str(paper.resolve()))
+            with self.assertRaisesRegex(ValueError, "multiple candidate PDFs"):
+                run_case.find_pdf({}, str(root/"case.json"), [])
+            paper.unlink()
+            with self.assertRaisesRegex(FileNotFoundError, "z-main-paper.pdf"):
+                run_case.find_pdf({"materials": materials}, str(root/"case.json"), [])
+
     def test_ocr_crash_and_empty_output_fall_through(self):
         line = parser.Line("中文文献正文", (5, 8, 40, 12), 12, "ocr:tesseract", False, False, 0,
                            meta={"ocr_conf": 0.94})
@@ -159,6 +197,71 @@ class OCRAndEvidenceTests(unittest.TestCase):
 
 @unittest.skipIf(parser.fitz is None, "PyMuPDF unavailable")
 class PDFIntegrationTests(unittest.TestCase):
+    def test_ocr_uses_display_rotation_and_returns_unrotated_coordinates(self):
+        fitz = parser.fitz
+        with fitz.open() as doc:
+            page = doc.new_page(width=440, height=700)
+            page.set_rotation(270)
+            native_box = fitz.Rect(40, 570, 200, 600)
+            view_box = native_box * page.rotation_matrix
+            line = parser.Line("315 K", tuple(view_box), 12, "ocr:tesseract", False, False, 0,
+                               meta={"ocr_conf": 0.95})
+            with patch.object(parser, "_run_tesseract_cli", return_value=[line]) as recognize, \
+                patch.object(shutil, "which", return_value=sys.executable):
+                lines, _ = parser.ocr_page(page, "tesseract", "eng", 72)
+            self.assertEqual(recognize.call_args.args[0].width, 700)
+            self.assertEqual(lines[0].bbox, tuple(native_box))
+
+    def test_short_page_and_rotated_table_survive_full_run_and_finalize(self):
+        fitz = parser.fitz
+        with tempfile.TemporaryDirectory() as temp, redirect_stdout(StringIO()) as output:
+            root = Path(temp)
+            pdf = root/"paper.pdf"
+            with fitz.open() as doc:
+                doc.new_page().insert_text((72, 92), "Materials Lab")
+                for rotation in (90, 270):
+                    page = doc.new_page(width=440, height=700)
+                    page.insert_text((65, 605), "The measured temperature was 315 K under steady operation.")
+                    for y in (480, 510, 540):
+                        page.draw_line((50, y), (310, y))
+                    for x in (50, 160, 310):
+                        page.draw_line((x, 480), (x, 540))
+                    for point, cell in [((60, 500), "Run"), ((175, 500), "Temperature"),
+                                        ((60, 530), "Baseline"), ((175, 530), "315 K")]:
+                        page.insert_text(point, cell)
+                    page.set_rotation(rotation)
+                doc.save(pdf)
+            case = {"case_id": "rotated", "materials": [{"path": "paper.pdf", "role": "paper"}],
+                    "questions": ["What was the measured temperature?"], "output_contract": ["answers"]}
+            case_path = root/"case.json"
+            case_path.write_text(json.dumps(case), encoding="utf-8")
+            args = ["--case", str(case_path), "--out", str(root/"out"), "--work", str(root/"work"), "--ocr", "off"]
+            self.assertEqual(run_case.main(args), 0)
+            result = run_case._read_json(root/"out/result.json")
+            self.assertEqual(result["status"]["pages_unreadable"], [])
+            self.assertEqual(result["status"]["pages_parsed"], 3)
+            self.assertEqual([p["rotation"] for p in result["evidence"]["pages"]], [0, 90, 270])
+            self.assertTrue(any("Materials Lab" in b["text"] for b in result["evidence"]["block_index"]))
+            self.assertEqual([t["page"] for t in result["result"]["tables"]], [2, 3])
+            with fitz.open(pdf) as doc:
+                for n in (2, 3):
+                    block = next(b for b in result["evidence"]["block_index"]
+                                 if b["page"] == n and "The measured temperature" in b["text"])
+                    bbox = fitz.Rect(block["bbox"])
+                    self.assertIn("315 K", doc[n - 1].get_textbox(bbox + (-0.1, -0.1, 0.1, 0.1)))
+            answer = result["result"]["questions"][0]
+            answer.update(answer="315 K under steady operation", answer_block=block["id"], status="verified")
+            run_case.write_result(root/"out", result)
+            self.assertEqual(run_case.main(args + ["--validate-result"]), 1)
+            self.assertEqual(run_case.main(args + ["--finalize"]), 0)
+            self.assertEqual(run_case.main(args + ["--finalize"]), 0)
+            updated = run_case._read_json(root/"out/result.json")
+            self.assertEqual(updated["status"]["state"], "success")
+            self.assertEqual(updated["answers"], updated["result"]["questions"])
+            self.assertEqual(updated["answers"][0]["evidence"][0]["page"], 3)
+            self.assertEqual(len(updated["changes"]), 1)
+            self.assertIn("Check: What was the measured temperature?", output.getvalue())
+
     def test_page_subset_and_zero_budget(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

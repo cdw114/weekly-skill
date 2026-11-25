@@ -47,7 +47,7 @@ except ImportError:  # pragma: no cover
     except ImportError:
         fitz = None
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 # --------------------------------------------------------------------------------------
 # Data model
@@ -268,7 +268,8 @@ def _fix_symbol_text(font: str, text: str) -> str:
 
 def extract_lines(page, page_no: int, body_size_hint: Optional[float] = None) -> List[Line]:
     """Span-level extraction with super/subscript recovery. Returns every text line."""
-    d = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE | fitz.TEXT_PRESERVE_LIGATURES, clip=page.rect)
+    bounds = page.rect * page.derotation_matrix
+    d = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE | fitz.TEXT_PRESERVE_LIGATURES, clip=bounds)
     lines: List[Line] = []
     for b in d.get("blocks", []):
         if b.get("type", 0) != 0:
@@ -327,11 +328,14 @@ def body_font_size(lines: Sequence[Line]) -> float:
 # OCR fallback
 # --------------------------------------------------------------------------------------
 
-def page_has_text_layer(page, min_chars: int = 30) -> bool:
-    try:
-        return len(page.get_text("text").strip()) >= min_chars
-    except Exception:
+def needs_page_ocr(page, lines):
+    if not lines:
+        return True
+    if sum(len(line.text.strip()) for line in lines) >= 30:
         return False
+    area = page.rect.get_area()
+    return area > 0 and any((fitz.Rect(image["bbox"]) & page.rect).get_area() >= 0.5 * area
+                            for image in page.get_image_info())
 
 
 def render_page(page, dpi: int):
@@ -530,6 +534,8 @@ def ocr_page(page, engine: str, lang: str, dpi: int) -> Tuple[List[Line], str]:
     else:
         raise ValueError(f"unsupported OCR engine {engine}")
     for l in lines:
+        if page.rotation:
+            l.bbox = tuple(fitz.Rect(l.bbox) * page.derotation_matrix)
         if l.meta.get("ocr_conf", 1.0) < OCR_LOW_CONF:
             l.meta["uncertain"] = True
     return lines, note
@@ -1579,24 +1585,31 @@ def parse_document(pdf_path: str, out_dir: str, lang: str = "eng", ocr: str = "a
             status_notes.append("Case time budget reached during text extraction.")
             break
         page = doc[pno - 1]
+        rotation = page.rotation
+        if rotation:
+            # Keep native text, table, figure, and layout geometry in the same page space.
+            # The OCR subprocess reopens the original and renders its display orientation.
+            page.set_rotation(0)
         lines = extract_lines(page, pno)
         source = "text_layer"
-        if len("".join(l.text for l in lines).strip()) < 30:
+        if needs_page_ocr(page, lines):
             if engines:
                 original_lines = lines
                 lines, engine = ocr_with_fallback(pdf_path, pno, engines, lang, dpi, password, ocr_deadline, status_notes)
-                if lines:
+                if lines and (not original_lines or sum(len(l.text) for l in lines) > sum(len(l.text) for l in original_lines)):
                     source = f"ocr:{engine}"
                 else:
                     lines = original_lines
                     source = "ocr_failed"
+                    status_notes.append(f"page {pno}: OCR did not recover additional text; any native text was retained.")
             else:
                 source = "no_text_layer"
                 status_notes.append(f"page {pno}: no usable text layer and OCR disabled or unavailable.")
         for l in lines:
             l.meta.setdefault("source", source)
         all_lines[pno] = lines
-        pm = {"page": pno, "width": float(page.rect.width), "height": float(page.rect.height), "text_source": source, "line_count": len(lines),
+        pm = {"page": pno, "width": float(page.rect.width), "height": float(page.rect.height), "rotation": rotation,
+              "coordinate_space": "unrotated PDF points", "text_source": source, "line_count": len(lines),
               "char_count": sum(len(l.text) for l in lines)}
         if source.startswith("ocr"):
             confs = [l.meta.get("ocr_conf", 1.0) for l in lines]
