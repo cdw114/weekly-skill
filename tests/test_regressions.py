@@ -10,6 +10,7 @@ import tempfile
 import time
 import types
 import unittest
+from dataclasses import asdict
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/"scripts"))
@@ -95,6 +96,19 @@ class OutputContractTests(unittest.TestCase):
 
 
 class OCRAndEvidenceTests(unittest.TestCase):
+    def test_native_worker_logs_do_not_interfere_with_ocr_results(self):
+        line = parser.Line("扫描文字", (10, 20, 200, 50), 12, "ocr:tesseract", False, False, 0)
+
+        def worker(*args, **kwargs):
+            request = json.loads(kwargs["input"])
+            Path(request["output"]).write_text(json.dumps([asdict(line)]), encoding="utf-8")
+            return subprocess.CompletedProcess(args[0], 0, "Native library progress\n", "")
+
+        with patch.object(subprocess, "run", side_effect=worker):
+            result = parser._run_ocr_attempt("scan.pdf", 1, "tesseract", "chi_sim", 200, None, 5)
+        self.assertEqual(result[0].text, line.text)
+        self.assertEqual(tuple(result[0].bbox), line.bbox)
+
     def test_primary_pdf_overrides_earlier_supplement_and_missing_primary_is_reported(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -197,6 +211,30 @@ class OCRAndEvidenceTests(unittest.TestCase):
 
 @unittest.skipIf(parser.fitz is None, "PyMuPDF unavailable")
 class PDFIntegrationTests(unittest.TestCase):
+    def test_tesseract_checks_sparse_layout_when_default_finds_very_little(self):
+        with parser.fitz.open() as doc:
+            page = doc.new_page(width=200, height=100)
+            image = page.get_pixmap(dpi=72)
+            header = "block_num\tpar_num\tline_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+            default = header + "1\t1\t1\t40\t20\t60\t15\t90\t科学\n"
+            sparse = (header + "1\t1\t1\t10\t20\t25\t15\t96\t中国\n"
+                      + "1\t1\t1\t40\t20\t60\t15\t90\t科学\n")
+            completed = [subprocess.CompletedProcess([], 0, tsv) for tsv in (default, sparse)]
+            with patch.object(subprocess, "run", side_effect=completed):
+                lines = parser._run_tesseract_cli(image, "tesseract", "chi_sim", page)
+            self.assertEqual(lines[0].text, "中国 科学")
+            self.assertEqual(lines[0].meta["tesseract_psm"], "11")
+            self.assertEqual(lines[0].bbox, (10, 20, 100, 35))
+
+    def test_rendered_scan_can_be_encoded_without_pillow(self):
+        with parser.fitz.open() as doc, patch.dict(sys.modules, {"PIL": None}):
+            page = doc.new_page(width=200, height=100)
+            image = parser.render_page(page, 72)
+            self.assertIsInstance(image, parser.fitz.Pixmap)
+            encoded = parser._img_to_png_bytes(image)
+            decoded = parser.fitz.Pixmap(encoded)
+            self.assertEqual((decoded.width, decoded.height), (200, 100))
+
     def test_ocr_uses_display_rotation_and_returns_unrotated_coordinates(self):
         fitz = parser.fitz
         with fitz.open() as doc:
@@ -292,12 +330,15 @@ class PDFIntegrationTests(unittest.TestCase):
             with parser.fitz.open() as native, parser.fitz.open() as scan:
                 page = native.new_page()
                 phrase = "中国科学文献"
-                page.insert_text((50, 92), phrase, fontname="china-s", fontsize=34)
+                for y, text in [(92, "中国科学文献提供研究资料"),
+                                (124, "研究结果记录在实验报告中"),
+                                (156, "文献内容需要核对原始页面")]:
+                    page.insert_text((50, y), text, fontname="china-s", fontsize=18)
                 scan.new_page().insert_image(page.rect, pixmap=page.get_pixmap(dpi=250))
                 scan.save(pdf)
             doc = parser.parse_document(str(pdf), str(root/"out"), lang="chi_sim", ocr="tesseract", dpi=250, quiet=True)
-            self.assertIn(1, doc["status"]["pages_ocr"])
-            self.assertIn(phrase, "".join("".join(b["text"].split()) for b in doc["blocks"]))
+            self.assertIn(1, doc["status"]["pages_ocr"], doc["status"]["notes"])
+            self.assertIn(phrase, "".join("".join(b["text"].split()) for b in doc["blocks"]), doc["status"]["notes"])
             self.assertTrue(any(b["bbox"] for b in doc["blocks"]))
 
 
