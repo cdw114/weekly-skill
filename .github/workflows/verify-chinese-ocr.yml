@@ -20,5 +20,32 @@ jobs:
           python3 -m venv .venv
           .venv/bin/python -m pip install -r requirements.txt
           .venv/bin/python -c 'import pymupdf; print(pymupdf.VersionBind)'
+      - name: Diagnose the scanned image fixture
+        run: |
+          .venv/bin/python - <<'PY'
+          import sys
+          import tempfile
+          from pathlib import Path
+          import fitz
+          sys.path.insert(0, 'scripts')
+          import pdfparse as parser
+          root = Path('/tmp/weekly-ocr-fixture')
+          root.mkdir(exist_ok=True)
+          print('PyMuPDF', fitz.VersionBind)
+          with fitz.open() as source, fitz.open() as scan:
+              page = source.new_page()
+              page.insert_text((50, 92), '中国科学文献', fontname='china-s', fontsize=34)
+              print('Native text:', repr(page.get_text()))
+              scan.new_page().insert_image(page.rect, pixmap=page.get_pixmap(dpi=250))
+              scan.save(root/'scan.pdf')
+          with fitz.open(root/'scan.pdf') as doc:
+              (root/'scan.png').write_bytes(parser._img_to_png_bytes(parser.render_page(doc[0], 250)))
+          result = parser.parse_document(str(root/'scan.pdf'), str(root/'result'), lang='chi_sim', ocr='tesseract', dpi=250)
+          print('Parser status:', result['status'])
+          PY
+          for psm in 3 6 7 11; do
+            printf 'PSM %s\n' "$psm"
+            tesseract /tmp/weekly-ocr-fixture/scan.png stdout -l chi_sim --psm "$psm" tsv
+          done
       - name: Run PDF regression tests
         run: .venv/bin/python -m unittest discover -s tests -v
