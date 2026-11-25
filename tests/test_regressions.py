@@ -10,6 +10,7 @@ import tempfile
 import time
 import types
 import unittest
+from dataclasses import asdict
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/"scripts"))
@@ -95,6 +96,19 @@ class OutputContractTests(unittest.TestCase):
 
 
 class OCRAndEvidenceTests(unittest.TestCase):
+    def test_native_worker_logs_do_not_interfere_with_ocr_results(self):
+        line = parser.Line("扫描文字", (10, 20, 200, 50), 12, "ocr:tesseract", False, False, 0)
+
+        def worker(*args, **kwargs):
+            request = json.loads(kwargs["input"])
+            Path(request["output"]).write_text(json.dumps([asdict(line)]), encoding="utf-8")
+            return subprocess.CompletedProcess(args[0], 0, "Native library progress\n", "")
+
+        with patch.object(subprocess, "run", side_effect=worker):
+            result = parser._run_ocr_attempt("scan.pdf", 1, "tesseract", "chi_sim", 200, None, 5)
+        self.assertEqual(result[0].text, line.text)
+        self.assertEqual(tuple(result[0].bbox), line.bbox)
+
     def test_primary_pdf_overrides_earlier_supplement_and_missing_primary_is_reported(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

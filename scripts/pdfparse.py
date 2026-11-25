@@ -33,6 +33,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field, asdict
@@ -47,7 +48,7 @@ except ImportError:  # pragma: no cover
     except ImportError:
         fitz = None
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 # --------------------------------------------------------------------------------------
 # Data model
@@ -547,14 +548,16 @@ def ocr_page(page, engine: str, lang: str, dpi: int) -> Tuple[List[Line], str]:
 
 def _run_ocr_attempt(pdf_path, pno, engine, lang, dpi, password, timeout):
     """Isolate OCR so a hung engine cannot consume the remaining case budget."""
-    request = json.dumps({"pdf": pdf_path, "page": pno, "engine": engine, "lang": lang,
-                          "dpi": dpi, "password": password}, ensure_ascii=False)
-    cp = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--ocr-worker"],
-                        input=request, encoding="utf-8", errors="replace",
-                        capture_output=True, timeout=timeout)
-    if cp.returncode:
-        raise RuntimeError(cp.stderr.strip().splitlines()[-1] if cp.stderr.strip() else f"OCR exited {cp.returncode}")
-    return [Line(**line) for line in json.loads(cp.stdout)]
+    with tempfile.TemporaryDirectory(prefix="weekly-ocr-") as work:
+        result_path = Path(work)/"lines.json"
+        request = json.dumps({"pdf": pdf_path, "page": pno, "engine": engine, "lang": lang,
+                              "dpi": dpi, "password": password, "output": str(result_path)}, ensure_ascii=False)
+        cp = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--ocr-worker"],
+                            input=request, encoding="utf-8", errors="replace",
+                            capture_output=True, timeout=timeout)
+        if cp.returncode:
+            raise RuntimeError(cp.stderr.strip().splitlines()[-1] if cp.stderr.strip() else f"OCR exited {cp.returncode}")
+        return [Line(**line) for line in json.loads(result_path.read_text(encoding="utf-8"))]
 
 
 def _ocr_worker():
@@ -565,7 +568,9 @@ def _ocr_worker():
         if doc.needs_pass and not doc.authenticate(request["password"] or ""):
             raise ValueError("OCR could not open the encrypted PDF")
         lines, _ = ocr_page(doc[request["page"] - 1], request["engine"], request["lang"], request["dpi"])
-    print(json.dumps([asdict(line) for line in lines], ensure_ascii=True))
+    # Native libraries can write to stdout even when Python redirects its own stream.
+    Path(request["output"]).write_text(json.dumps([asdict(line) for line in lines], ensure_ascii=False),
+                                      encoding="utf-8")
 
 
 def ocr_with_fallback(pdf_path, pno, engines, lang, dpi, password, deadline, notes):
