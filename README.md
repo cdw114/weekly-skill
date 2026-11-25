@@ -12,7 +12,7 @@ Playground「阅读01｜文献文档解析」参赛作品。对应四个评审�
 ### 环境
 - Python ≥ 3.9
 - 必需：`PyMuPDF ≥ 1.23`（Harbor 镜像 `pdf-text-tool` 已预装）
-- 可选（扫描件 OCR，任一即可）：`rapidocr_onnxruntime`（推荐，纯 onnx 无系统依赖）/ `paddleocr` / `tesseract`（需语言包）/ `ocr-tool` CLI
+- 可选（扫描件 OCR，任一即可）：`rapidocr_onnxruntime` / `paddleocr` / `tesseract` CLI（中文与英文扫描请安装 `chi_sim` 和 `eng` 语言包）/ `ocr-tool` CLI
 
 ```bash
 pip install -r requirements.txt            # 只装 pymupdf
@@ -76,7 +76,7 @@ python3 scripts/pdfparse.py paper.pdf out_dir --lang eng --ocr auto --pages 1-20
   "sources": [{"type": "file", "path": "/input/x.pdf", "sha256": "…", "pages": 12}]
 }
 ```
-如果 case.json 给了 `output_contract`，runner 会把相应字段**同时放在顶层**（如 `outline`、`tables`、`answers`、`markdown`）。
+runner 按 `output_contract` 映射可以确定的字段，例如 `outline`、`tables`、`answers`。通常 `markdown` 的值是正文，只有明确要求文件路径时才提供文件名。待补充内容记在 `uncertainty.contract_errors` 中，待复核问答记在 `uncertainty.questions_to_verify` 中。Agent 补充输出后运行 `python3 scripts/run_case.py --case /input/case.json --out /app/output --validate-result`。
 
 ### document.json 块类型
 `title` `authors` `affiliation` `abstract_label` `abstract` `keywords` `heading` `paragraph` `list` `table` `table_caption` `figure` `caption` `equation` `footnote` `reference` `header` `footer` `page_number` `small_text` `other`
@@ -106,8 +106,8 @@ python3 scripts/pdfparse.py paper.pdf out_dir --lang eng --ocr auto --pages 1-20
 
 | 情况 | `status.state` | 说明 |
 |-|-|-|
-| 全部页有文字层 | `success` | |
-| 部分页 OCR、部分页不可读 | `partial` | `pages_unreadable` 列出页码，`notes` 说明原因 |
+| 任务范围内的页面与输出均已完成 | `success` | 解析出的问答候选经过原页复核后再结案 |
+| 部分页未处理或不可读、低置信 OCR、输出契约或问答需要人工完成 | `partial` | 查看 `not_done`、`pages_unreadable`、`contract_errors` 和 `questions_to_verify` |
 | 全部页不可读（扫描件无 OCR）/ 加密 / 找不到 PDF | `failed` | `reason` 给出人工接管位置 |
 | OCR 低置信、公式乱码 | 块 `flags:["uncertain"]` | `uncertainty.low_confidence_blocks` |
 
@@ -125,9 +125,11 @@ python3 scripts/pdfparse.py paper.pdf out_dir --lang eng --ocr auto --pages 1-20
 
 一键复现自测（合成素材，约 3 s）：
 ```bash
+python3 -m pip install fpdf2    # 示例 PDF 生成依赖，另需系统 TTF 字体
 python3 src/reproduce.py        # 写 execution/results/ 与 execution/run.log
+python3 -m unittest discover -s tests -v
 ```
-它用与评测相同的入口 `scripts/run_case.py` 跑三组：合成论文（15 项核对：标题/作者/单位/关键词/章节树/表格/多层表头/续表/公式/参考文献/阅读顺序/3 个问答）、扫描件（无 OCR 时必须诚实 `failed`）、缺失文件（必须 `failed` 且**不回退到别的 PDF**）。结果在 `execution/results/selftest_summary.json`，当前 **18/18**。`characterization.json` 里的数字全部来自这次自测，**不是**隐藏用例的得分。
+自测使用与评测相同的入口。它覆盖合成论文、明确关闭 OCR 的扫描件，以及缺失输入。回归测试另覆盖部分页、超时、加密输入、契约字段、OCR 回退与问答证据。真实中文 OCR 检查需要 PyMuPDF、Tesseract 及 `chi_sim` 语言包。仓库原有的合成自测日志记录的是对应生成时间的结果，正式用例表现由平台评测。
 
 ---
 

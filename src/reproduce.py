@@ -47,10 +47,10 @@ def sha256(path: str) -> str:
     return h.hexdigest()
 
 
-def run_case(case: str, out: str, work: str) -> dict:
+def run_case(case: str, out: str, work: str, *options: str) -> dict:
     os.makedirs(out, exist_ok=True); os.makedirs(work, exist_ok=True)
-    cp = subprocess.run([sys.executable, os.path.join(SCRIPTS, "run_case.py"), "--case", case, "--out", out, "--work", work],
-                        capture_output=True, text=True, timeout=900)
+    cp = subprocess.run([sys.executable, os.path.join(SCRIPTS, "run_case.py"), "--case", case, "--out", out, "--work", work, *options],
+                        capture_output=True, encoding="utf-8", errors="replace", timeout=900)
     log(f"run_case exit={cp.returncode} case={os.path.basename(case)}")
     for ln in (cp.stdout + cp.stderr).splitlines()[:12]:
         log("    " + ln)
@@ -84,7 +84,9 @@ def score_case(r: dict, exp: dict) -> dict:
     st, res = r["status"], r["result"]
     doc = res.get("document") or {}
     checks = {}
-    checks["state_success"] = st["state"] == "success"
+    checks["all_pages_parsed_with_qa_pending"] = (st["state"] == "partial"
+                                                  and st["pages_parsed"] == st["pages_total"]
+                                                  and st["reason"] == "candidate answers need source verification")
     checks["title_exact"] = doc.get("title") == exp["title"]
     checks["authors_exact"] = doc.get("authors") == exp["authors"]
     l1 = [c["title"] for c in (res["sections"][0].get("children", []) if res["sections"] else []) if c["level"] == 1]
@@ -145,18 +147,17 @@ def main() -> int:
                                 "checks": checks, "passed": passed, "total": len(checks)}
     log(f"synth: {passed}/{len(checks)} checks passed; failed: {[k for k, v in checks.items() if not v]}")
 
-    # 2. scanned copy (negative / honesty check): must NOT report success unless an OCR engine exists
+    # 2. Scanned copy with OCR explicitly disabled for a reproducible failure check.
     if not a.quick and os.path.isfile(EXAMPLE_SCAN):
         case_scan = os.path.join(RESULTS, "_work_synth", "case_scan.json")
         json.dump({"case_id": "synth-scan-neg", "pdf": EXAMPLE_SCAN, "output_contract": {"required": ["case_id", "status", "result", "evidence", "uncertainty"]}},
                   open(case_scan, "w", encoding="utf-8"))
-        rs = run_case(case_scan, os.path.join(RESULTS, "scan"), os.path.join(RESULTS, "_work_scan"))
-        honest = (rs["status"]["state"] in ("failed", "partial")) and bool(rs["status"].get("pages_unreadable")) and any("OCR" in n for n in rs["status"].get("notes", []))
-        ocr_ok = rs["status"]["state"] == "success" and rs["status"].get("pages_ocr")
+        rs = run_case(case_scan, os.path.join(RESULTS, "scan"), os.path.join(RESULTS, "_work_scan"), "--ocr", "off")
+        scan_checks = {"failed_with_ocr_off": rs["status"]["state"] == "failed",
+                       "reports_unreadable_pages": rs["status"].get("pages_unreadable") == [1, 2, 3]}
         summary["cases"]["scan"] = {"state": rs["status"]["state"], "pages_ocr": rs["status"].get("pages_ocr"),
                                     "pages_unreadable": rs["status"].get("pages_unreadable"),
-                                    "checks": {"honest_degradation_without_ocr": honest or bool(ocr_ok), "ocr_path_when_available": ocr_ok or honest},
-                                    "passed": int(honest or bool(ocr_ok)) + int(ocr_ok or honest), "total": 2}
+                                     "checks": scan_checks, "passed": sum(scan_checks.values()), "total": len(scan_checks)}
         log(f"scan: state={rs['status']['state']} unreadable={rs['status'].get('pages_unreadable')} ocr={rs['status'].get('pages_ocr')}")
 
     # 3. missing-PDF negative: the case names a PDF that does not exist. Must write a failed result.json and

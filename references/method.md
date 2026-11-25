@@ -2,7 +2,7 @@
 
 目标：把 PDF 页面上的 glyph 流还原为**有结构、有顺序、可定位**的文档对象。所有判断只用几何 + 字体 + 文本特征，不依赖训练模型，保证可复现。
 
-坐标约定：PDF 原始坐标（原点左上，单位 pt），`bbox = [x0, y0, x1, y1]`。页宽高取自第 1 页。
+坐标使用左上原点，单位为 pt。每页保存自己的宽度和高度。原文位置用 `bbox = [x0, y0, x1, y1]`，OCR 引擎只返回纯文本时使用 `bbox: null`。
 
 ---
 
@@ -15,9 +15,9 @@
 
 ## 2. 页面文字层判定与 OCR
 - `sum(len(line.text)) < 30` → 视为无文字层。
-- OCR 顺序：rapidocr_onnxruntime → rapidocr → paddleocr → tesseract (pytesseract 或 CLI `tsv`) → `ocr-tool` CLI。
+- 自动模式按 rapidocr → paddleocr → tesseract CLI → `ocr-tool` CLI 逐页回退。引擎报错、超时、无文字或返回低置信文字都会触发下一次尝试。全部候选都低置信时保留质量最高的结果和实际来源。
 - 每个 OCR 行带 `meta.ocr_conf ∈ [0,1]`；`< OCR_LOW_CONF (0.80)` → `meta.uncertain=True`，块的 `flags` 加 `uncertain`。
-- CLI 无法给出几何时，按段落均分页面高度，`meta.geometry="unknown"`，整页块标 `uncertain`。
+- 无几何信息的结果按返回顺序排版，输出坐标留空，整页块标 `uncertain`。每次 OCR 用独立进程，超时受剩余预算约束。预算保留版面分析和产物写出时间，尚未处理的页写入 `not_done`。
 
 ## 3. 正文字号（`body_font_size`）
 所有行字号的加权众数（按字符数加权，排除页眉页脚区）。用于计算 `size_ratio = size / body_size`。
@@ -97,7 +97,7 @@ top running blocks → 各带：按 `order` 排序的文本块（双栏：左后
 - 语料 = 所有非页眉页脚块 + 表格 markdown；token 化：小写、去停用词、轻量词干（`-ing/-ed/-s/-ies`）、复合词拆分（`runtime→run time`）；CJK 按字。
 - 打分：TF-IDF（块内 tf，文档 df）+ **bigram 短语命中 ×2**。
 - 句级选择：top-3 块内按句切分，`命中词占比 + 0.3·bigram + 数字问题含数字句 +0.15 − 长度惩罚` → `answer`；记录 `answer_block`。
-- `confidence`：top1/top3 比值 > 1.5 或仅 1 命中 → high；否则 medium；best_score < 2 → low（`status=uncertain`）；无命中 → `not_found`。
+- 保存选中句子或表格行所属的真实块。较强的结果仍是 `candidate`。弱匹配、缺坐标和低置信 OCR 结果标 `uncertain`。无命中保留 `not_found`，由 Agent 依据原页确认数值、单位、表头和适用条件后更新结论。
 
 ## 10. 复杂度
-每页 O(L log L)（L 行数），100 页 < 30 s（不含 OCR）。OCR 时间取决于引擎，rapidocr 约 2–5 s/页。
+耗时取决于行数、表格复杂度和 OCR 模型启动时间。用 `status.elapsed_s` 记录实际运行时间。

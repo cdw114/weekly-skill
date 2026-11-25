@@ -17,16 +17,18 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import math
 import os
 import shutil
 import sys
+import tempfile
 import time
-import traceback
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import pdfparse as P  # noqa: E402
+from output_contract import contract_errors, evidence_errors, project_case_fields
 
 
 def _log(msg: str) -> None:
@@ -117,7 +119,7 @@ find_pdf.alternates = []  # type: ignore[attr-defined]
 
 
 def find_task_md(case_path: str) -> Optional[str]:
-    for c in ("/input/task.md", os.path.join(os.path.dirname(case_path), "task.md")):
+    for c in (os.path.join(os.path.dirname(case_path), "task.md"), "/input/task.md"):
         if os.path.isfile(c):
             return c
     return None
@@ -160,72 +162,82 @@ def collect_questions(case: dict, task_md: Optional[str], explicit: Optional[str
     return out
 
 
-def contract_fields(case: dict) -> List[str]:
-    """Field names the case expects in result.json (output_contract may be a dict or a list)."""
-    oc = case.get("output_contract")
-    fields: List[str] = []
-    if isinstance(oc, dict):
-        fields = list(oc.get("required", oc.get("fields", list(oc.keys()))))
-    elif isinstance(oc, list):
-        for it in oc:
-            if isinstance(it, str):
-                fields.append(it)
-            elif isinstance(it, dict) and "name" in it:
-                fields.append(it["name"])
-    fields = [f for f in fields if isinstance(f, str)]
-    # the challenge guarantees these three
-    for must in ("case_id", "status", "result", "evidence", "uncertainty"):
-        if must not in fields:
-            fields.append(must)
-    return fields
-
-
-def grounded_evidence(doc: dict, max_items: int = 400) -> List[dict]:
+def grounded_evidence(doc: dict) -> List[dict]:
     """One compact evidence record per content block (id, page, bbox, type, short text) so a reader can jump back."""
     ev = []
     for b in doc.get("blocks", []):
         if b.get("type") in ("header", "footer", "page_number"):
             continue
         ev.append({"id": b["id"], "page": b["page"], "type": b["type"], "bbox": b["bbox"],
-                   "text": (b.get("text") or "")[:160]})
-        if len(ev) >= max_items:
-            break
+                   "flags": b.get("flags", []), "text": (b.get("text") or "")[:160]})
     return ev
 
 
-def build_result(case: dict, case_path: str, parsed: dict, questions: List[str], work_dir: str,
-                  started: float, extra: Dict[str, Any]) -> dict:
-    case_id = case.get("case_id") or case.get("id") or case.get("name") or os.path.splitext(os.path.basename(case_path))[0]
+def case_identifier(case, case_path):
+    for field in ("case_id", "id", "name"):
+        if case.get(field) is not None:
+            return case[field]
+    return Path(case_path).stem
+
+
+def write_result(out_dir, value):
+    tmp = tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=out_dir, delete=False)
+    path = Path(tmp.name)
+    try:
+        with tmp:
+            json.dump(value, tmp, ensure_ascii=False, indent=2)
+        os.replace(path, Path(out_dir)/"result.json")
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def fallback_result(case, case_path, out_dir, state, reason, started):
+    result = {
+        "case_id": case_identifier(case, case_path),
+        "status": {"state": state, "reason": reason, "pages_total": None, "pages_parsed": 0,
+                   "pages_unreadable": [], "pages_ocr": [], "uncertain_blocks": 0,
+                   "elapsed_s": round(time.monotonic() - started, 2), "notes": [reason], "limits": []},
+        "result": None,
+        "evidence": {"block_index": [], "pages": [], "artifacts": {}},
+        "uncertainty": {"not_done": ["parse"], "unreadable_pages": [], "notes": [reason]},
+        "changes": [],
+        "sources": [],
+    }
+    return project_case_fields(case, result, {}, out_dir)
+
+
+def build_result(case: dict, case_path: str, parsed: dict, out_dir: str,
+                 started: float, extra: Dict[str, Any]) -> dict:
+    case_id = case_identifier(case, case_path)
     st = parsed["status"]
-    state_map = {"success": "success", "partial": "partial", "failed": "failed"}
-    state = state_map.get(st["state"], st["state"])
-    if st["state"] == "success" and (st.get("pages_unreadable") or st.get("uncertain_blocks")):
-        state = "partial" if st.get("pages_unreadable") else "success"
     questions_out = []
-    if questions:
-        for a in parsed.get("answers", []):
-            ev = [{"id": e["id"], "page": e["page"], "type": e["type"], "bbox": e["bbox"]} for e in a.get("evidence", [])]
-            questions_out.append({
-                "question": a["question"], "answer": a.get("answer"), "status": a["status"],
-                "confidence": a.get("confidence"), "answer_block": a.get("answer_block"),
-                "evidence": ev,
-                "evidence_text": [e["text"] for e in a.get("evidence", [])][:2],
-            })
+    for a in parsed.get("answers", []):
+        questions_out.append({
+            "question": a["question"], "answer": a.get("answer"), "status": a["status"],
+            "confidence": a.get("confidence"), "answer_block": a.get("answer_block"),
+            "requires_verification": a.get("requires_verification", False),
+            "evidence": a.get("evidence", []),
+            "evidence_text": [e["text"] for e in a.get("evidence", [])][:2],
+        })
+    pending_answers = [q["question"] for q in questions_out if q["requires_verification"]]
+    pending = st["state"] == "success" and bool(pending_answers)
     result: Dict[str, Any] = {
         "case_id": case_id,
         "schema": "pdfparse-case/v1",
         "input": parsed["input"],
         "status": {
-            "state": state,
-            "reason": None,
+            "state": "partial" if pending else st["state"],
+            "reason": "candidate answers need source verification" if pending else st["reason"],
             "pages_total": st["pages_total"],
             "pages_parsed": st["pages_parsed"],
             "pages_unreadable": st["pages_unreadable"],
             "pages_ocr": st["pages_ocr"],
             "uncertain_blocks": st["uncertain_blocks"],
-            "elapsed_s": round(time.time() - started, 2),
-            "notes": st["notes"],
-            "limits": [],
+            "elapsed_s": round(time.monotonic() - started, 2),
+            "notes": list(st["notes"]),
+            "limits": ["Candidate answers need verification against the original page",
+                       "No LaTeX reconstruction or OCR of regions on a page with a usable text layer",
+                       "Layout heuristics target single and double columns"],
         },
         "result": {
             "document": parsed["document"],
@@ -254,145 +266,126 @@ def build_result(case: dict, case_path: str, parsed: dict, questions: List[str],
         "uncertainty": {
             "unreadable_pages": st["pages_unreadable"],
             "ocr_pages": st["pages_ocr"],
-            "low_confidence_blocks": [b["id"] for b in parsed["blocks"] if "uncertain" in (b.get("flags") or [])][:200],
+            "low_confidence_blocks": [b["id"] for b in parsed["blocks"] if "uncertain" in (b.get("flags") or [])],
             "notes": st["notes"],
-            "not_done": [],
+            "not_done": st["not_done"],
+            "questions_to_verify": pending_answers,
         },
         "changes": [],
         "sources": [{"type": "file", "path": parsed["input"]["path"], "sha256": parsed["input"].get("sha256"), "pages": st["pages_total"]}],
         "tools": parsed["parser"],
-        "runtime": {"work_dir": work_dir, "python": sys.version.split()[0], "pdfparse": P.VERSION},
+        "runtime": {"python": sys.version.split()[0], "pdfparse": parsed["parser"]["version"]},
     }
     result.update(extra)
-    # honour an explicit output_contract: map our content into the required field names
-    fields = contract_fields(case)
-    alias = {
-        "reading_order": result["result"]["reading_order"],
-        "outline": result["result"]["sections"], "sections": result["result"]["sections"],
-        "structure": result["result"]["sections"],
-        "metadata": result["result"]["document"], "title": result["result"]["document"].get("title"),
-        "authors": result["result"]["document"].get("authors"), "abstract": result["result"]["document"].get("abstract"),
-        "keywords": result["result"]["document"].get("keywords"),
-        "tables": result["result"]["tables"], "figures": result["result"]["figures"], "equations": result["result"]["equations"],
-        "citations": result["result"]["references"], "references": result["result"]["references"],
-        "answers": questions_out, "qa": questions_out,
-        "document": "document.json", "markdown": "document.md",
-        "pages": result["evidence"]["pages"],
-        "blocks": [{"id": b["id"], "page": b["page"], "type": b["type"], "bbox": b["bbox"], "text": b["text"]} for b in parsed["blocks"]],
-        "content_markdown": open(os.path.join(work_dir, "document.md"), encoding="utf-8").read() if os.path.isfile(os.path.join(work_dir, "document.md")) else None,
-    }
-    for f in fields:
-        if f not in result and f in alias:
-            result[f] = alias[f]
-    return result
+    return project_case_fields(case, result, parsed, out_dir)
+
+
+def _validate(case, out_dir):
+    result = _read_json(os.path.join(out_dir, "result.json"))
+    if not isinstance(result, dict):
+        raise ValueError("result.json must be an object")
+    errors = contract_errors(case, result, out_dir) + evidence_errors(case, result)
+    print(json.dumps({"valid": not errors, "errors": errors}, ensure_ascii=True))
+    return int(bool(errors))
+
+
+def _copy_artifacts(stage, out_dir):
+    for name in ("document.json", "document.md", "tables", "pages"):
+        src, dst = stage/name, Path(out_dir)/name
+        if src.is_file():
+            shutil.copy2(src, dst)
+        elif name in ("tables", "pages"):
+            if dst.is_dir():
+                shutil.rmtree(dst)
+            if src.is_dir():
+                shutil.copytree(src, dst)
+
+
+def _run_case(args, case, started):
+    args.task = args.task or find_task_md(args.case)
+    pdf = args.pdf or find_pdf(case, args.case, [os.path.dirname(args.case), "/input", "/app/input"])
+    if not pdf or not os.path.isfile(pdf):
+        missing = [args.pdf] if args.pdf else getattr(find_pdf, "missing_explicit", [])
+        raise FileNotFoundError(f"input PDF not found (case={args.case}, requested={missing})")
+    _log(f"PDF: {pdf}")
+    import pdfparse as parser
+
+    if parser.fitz is None:
+        raise RuntimeError("PyMuPDF is required. Install it with python -m pip install -r requirements.txt.")
+    lang = args.lang or case.get("ocr_language") or case.get("language")
+    if lang in ("zh", "zh-CN", "Chinese", "中文"):
+        lang = "chi_sim+eng"
+    elif lang in ("en", "en-US", "English"):
+        lang = "eng"
+    if not lang:
+        # Chinese scans have no text to sample. Prefer a bilingual run when those language files are installed.
+        with parser.fitz.open(pdf) as sample_pdf:
+            sample = "".join(sample_pdf[i].get_text() for i in range(min(3, len(sample_pdf)))) if not sample_pdf.needs_pass else ""
+        if len(sample.strip()) < 30:
+            lang = "chi_sim+eng"
+        else:
+            lang = "chi_sim+eng" if any("\u4e00" <= char <= "\u9fff" for char in sample) else "eng"
+    questions = collect_questions(case, args.task, args.questions)
+    with tempfile.TemporaryDirectory(dir=args.work, prefix="parse-") as temp:
+        parsed = parser.parse_document(pdf, temp, lang=lang, ocr=args.ocr, pages=args.pages, dpi=args.dpi,
+                                      password=args.password, questions=questions or None, quiet=True,
+                                      deadline=started + args.max_seconds)
+        _copy_artifacts(Path(temp), args.out)
+    extra = {}
+    alts = getattr(find_pdf, "alternates", []) if not args.pdf else []
+    if alts:
+        extra["input_candidates"] = {"chosen": pdf, "alternates": alts}
+        parsed["status"]["notes"].append(f"{len(alts)} other PDF(s) were not parsed. Verify the selected source or re-run with --pdf.")
+    result = build_result(case, args.case, parsed, args.out, started, extra)
+    write_result(args.out, result)
+    st = result["status"]
+    _log(f"state={st['state']} pages={st['pages_parsed']}/{st['pages_total']} unreadable={st['pages_unreadable']}")
+    return int(st["state"] == "failed")
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="Parse the case PDF into a grounded structured result.")
     ap.add_argument("--case", default="/input/case.json")
-    ap.add_argument("--pdf", default=None, help="override PDF path (skips case lookup)")
-    ap.add_argument("--task", default=None, help="task.md path")
+    ap.add_argument("--pdf", help="Override the PDF path")
+    ap.add_argument("--task", help="Path to task.md")
     ap.add_argument("--out", default="/app/output")
     ap.add_argument("--work", default="/app/work")
-    ap.add_argument("--questions", default=None)
-    ap.add_argument("--lang", default=None, help="OCR language; default auto (chi_sim+eng if CJK detected else eng)")
-    ap.add_argument("--ocr", default="auto")
+    ap.add_argument("--questions")
+    ap.add_argument("--lang", help="OCR language, for example chi_sim+eng")
+    ap.add_argument("--ocr", default="auto", choices=["auto", "off", "tesseract", "rapidocr", "paddleocr", "ocr-tool"])
     ap.add_argument("--dpi", type=int, default=200)
-    ap.add_argument("--pages", default=None)
-    ap.add_argument("--password", default=None)
-    ap.add_argument("--max-seconds", type=float, default=800.0, help="soft budget: stop before starting OCR beyond this")
+    ap.add_argument("--pages", help="One-based page range, for example 1-3,5")
+    ap.add_argument("--password")
+    ap.add_argument("--max-seconds", type=float, default=800.0, help="Case time budget including OCR and layout")
+    ap.add_argument("--validate-result", action="store_true", help="Check the completed result against the case contract")
     args = ap.parse_args(argv)
-    t0 = time.time()
+    if not math.isfinite(args.max_seconds) or args.max_seconds < 0:
+        ap.error("--max-seconds must be finite and nonnegative")
+    start = time.monotonic()
     os.makedirs(args.out, exist_ok=True)
-    os.makedirs(args.work, exist_ok=True)
-
     case: dict = {}
-    case_path = args.case
-    if os.path.isfile(case_path):
-        try:
-            case = _read_json(case_path)
-        except Exception as e:
-            _log(f"case.json unreadable ({e}); continuing with PDF lookup only")
-    else:
-        _log(f"no case file at {case_path}; continuing with --pdf / directory lookup")
-    if not os.path.isfile(args.task or ""):
-        args.task = find_task_md(case_path) if args.case else None
-    task_md = open(args.task, encoding="utf-8", errors="replace").read() if args.task and os.path.isfile(args.task) else None
-    if task_md:
-        _log("task.md:\n" + "\n".join("    " + ln for ln in task_md.splitlines()[:40]))
-
-    pdf = args.pdf or (find_pdf(case, case_path, [os.path.dirname(case_path), "/input", "/app/input"]) if case is not None else None)
-    if not pdf or not os.path.isfile(pdf):
-        msg = f"input PDF not found (case={case_path}, pdf={pdf})"
-        _log(msg)
-        res = {"case_id": (case or {}).get("case_id") or (case or {}).get("id") or os.path.splitext(os.path.basename(case_path))[0],
-              "status": {"state": "failed", "reason": msg, "notes": [msg]},
-              "result": None, "evidence": [], "uncertainty": {"not_done": ["parse"]}, "changes": []}
-        with open(os.path.join(args.out, "result.json"), "w", encoding="utf-8") as f:
-            json.dump(res, f, ensure_ascii=False, indent=2)
-        return 2
-    _log(f"PDF: {pdf}")
-    # keep a copy of the original in the work dir for provenance
     try:
-        shutil.copy2(pdf, os.path.join(args.work, os.path.basename(pdf)))
-    except Exception:
-        pass
-
-    lang = args.lang
-    if not lang:
-        try:
-            import fitz
-            d = fitz.open(pdf)
-            sample = "".join(d[i].get_text() for i in range(min(3, len(d))))
-            d.close()
-            cjk = sum(1 for ch in sample if "\u4e00" <= ch <= "\u9fff")
-            lang = "chi_sim+eng" if cjk > 20 else "eng"
-        except Exception:
-            lang = "eng"
-    questions = collect_questions(case, args.task, args.questions)
-    if questions:
-        _log(f"{len(questions)} question(s) to answer: {questions[:3]}")
-
-    parsed = P.parse_document(pdf, args.work, lang=lang, ocr=args.ocr, pages=args.pages, dpi=args.dpi,
-                              password=args.password, questions=questions or None, quiet=True)
-    extra: Dict[str, Any] = {}
-    alts = getattr(find_pdf, "alternates", [])
-    if alts:
-        extra["input_candidates"] = {"chosen": pdf, "alternates": alts}
-        parsed["status"]["notes"].append(f"{len(alts)} other PDF(s) found near the case were not parsed ({[os.path.basename(a) for a in alts][:5]}); "
-                                         f"chosen {os.path.basename(pdf)} by case id/title match, then text layer, then page count. Re-run with --pdf to override.")
-    result = build_result(case if case else {}, case_path, parsed, questions, args.work, t0, extra)
-    # expose contract fields at top-level too (some graders read result.json flat)
-    with open(os.path.join(args.out, "result.json"), "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-    for name in ("document.json", "document.md"):
-        src = os.path.join(args.work, name)
-        if os.path.isfile(src):
-            shutil.copy2(src, os.path.join(args.out, name))
-    for d in ("tables", "pages"):
-        src = os.path.join(args.work, d)
-        if os.path.isdir(src):
-            dst = os.path.join(args.out, d)
-            if os.path.isdir(dst):
-                shutil.rmtree(dst)
-            shutil.copytree(src, dst)
-    st = result["status"]
-    _log(f"done: state={st['state']} pages={st['pages_parsed']}/{st['pages_total']} unreadable={st['pages_unreadable']} "
-         f"tables={len(parsed['tables'])} blocks={len(parsed['blocks'])} -> {os.path.join(args.out, 'result.json')}")
-    return 0 if st["state"] == "success" else (0 if st["state"] == "partial" else 1)
+        if os.path.isfile(args.case):
+            loaded = _read_json(args.case)
+            if not isinstance(loaded, dict):
+                raise ValueError("case.json must be an object")
+            case = loaded
+        elif args.validate_result or not args.pdf:
+            raise FileNotFoundError(f"case file not found: {args.case}")
+        if args.validate_result:
+            return _validate(case, args.out)
+        os.makedirs(args.work, exist_ok=True)
+        write_result(args.out, fallback_result(case, args.case, args.out, "partial", "PDF analysis started", start))
+        return _run_case(args, case, start)
+    except Exception as exc:
+        if args.validate_result:
+            print(json.dumps({"valid": False, "errors": [str(exc)]}, ensure_ascii=True))
+            return 1
+        reason = f"{type(exc).__name__}: {exc}"
+        _log(reason)
+        write_result(args.out, fallback_result(case, args.case, args.out, "failed", reason, start))
+        return 2
 
 
 if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except SystemExit:
-        raise
-    except Exception:
-        traceback.print_exc()
-        out = "/app/output"
-        os.makedirs(out, exist_ok=True)
-        with open(os.path.join(out, "result.json"), "w", encoding="utf-8") as f:
-            json.dump({"case_id": None, "status": {"state": "failed", "reason": traceback.format_exc()[-1500:]},
-                       "result": None, "evidence": [], "uncertainty": {"not_done": ["parse"]}, "changes": []},
-                      f, ensure_ascii=False, indent=2)
-        sys.exit(1)
+    sys.exit(main())

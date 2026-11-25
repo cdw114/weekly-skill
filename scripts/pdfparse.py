@@ -31,9 +31,12 @@ import json
 import math
 import os
 import re
+import subprocess
 import sys
+import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field, asdict
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 try:
@@ -42,8 +45,7 @@ except ImportError:  # pragma: no cover
     try:
         import pymupdf as fitz  # noqa: N813
     except ImportError:
-        sys.stderr.write("pdfparse: PyMuPDF is required (pip install pymupdf)\n")
-        raise
+        fitz = None
 
 VERSION = "1.0.0"
 
@@ -115,12 +117,13 @@ class Block:
     def to_dict(self, include_lines: bool = False) -> dict:
         d = {
             "id": self.bid, "type": self.kind, "page": self.page,
-            "bbox": [round(v, 2) for v in self.bbox], "text": self.text,
+            "bbox": None if self.meta.get("geometry") == "unknown" else [round(v, 2) for v in self.bbox],
+            "text": self.text,
             "level": self.level, "number": self.number, "parent": self.parent,
             "confidence": round(self.confidence, 3), "flags": self.flags, "meta": self.meta,
         }
         if include_lines:
-            d["lines"] = [{"text": l.text, "bbox": [round(v, 2) for v in l.bbox], "size": l.size,
+            d["lines"] = [{"text": l.text, "bbox": None if l.meta.get("geometry") == "unknown" else [round(v, 2) for v in l.bbox], "size": l.size,
                            "font": l.font, "bold": l.bold, "italic": l.italic,
                            **({"ocr_conf": l.meta["ocr_conf"]} if "ocr_conf" in l.meta else {})}
                           for l in self.lines]
@@ -373,70 +376,43 @@ def _lines_from_text_layout(text: str, page, scale: float, engine: str) -> List[
     return out
 
 
-def ocr_engine_available(engine: str) -> Tuple[bool, str]:
-    if engine in ("rapidocr", "auto"):
-        try:
-            import rapidocr_onnxruntime  # noqa: F401
-            return True, "rapidocr_onnxruntime"
-        except Exception:
-            pass
-        try:
-            from rapidocr import RapidOCR  # noqa: F401
-            return True, "rapidocr"
-        except Exception:
-            pass
+
+
+def ocr_engines(requested: str) -> List[str]:
+    """Return candidate engines in priority order without importing ML libraries in the parser."""
+    if requested == "off":
+        return []
+    candidates = ("rapidocr", "paddleocr", "tesseract", "ocr-tool") if requested == "auto" else (requested,)
+    from importlib.util import find_spec
+    from shutil import which
+
+    def available(engine):
         if engine == "rapidocr":
-            return False, "rapidocr not installed"
-    if engine in ("paddleocr", "auto"):
-        try:
-            from paddleocr import PaddleOCR  # noqa: F401
-            return True, "paddleocr"
-        except Exception:
-            if engine == "paddleocr":
-                return False, "paddleocr not installed"
-    if engine in ("tesseract", "auto"):
-        import shutil
-        exe = shutil.which("tesseract") or (r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-                                            if os.name == "nt" and os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe") else None)
-        if exe:
-            return True, f"tesseract-cli:{exe}"
-        try:
-            import pytesseract  # noqa: F401
-            return True, "pytesseract"
-        except Exception:
-            pass
+            return find_spec("rapidocr_onnxruntime") is not None or find_spec("rapidocr") is not None
+        if engine == "paddleocr":
+            return find_spec("paddleocr") is not None
         if engine == "tesseract":
-            return False, "tesseract not found"
-    if engine in ("ocr-tool", "auto"):
-        import shutil
-        exe = shutil.which("ocr-tool")
-        if exe:
-            return True, f"ocr-tool:{exe}"
-        if engine == "ocr-tool":
-            return False, "ocr-tool not on PATH"
-    if engine == "auto":
-        return False, "no OCR engine found (rapidocr/paddleocr/tesseract/ocr-tool)"
-    return False, f"unknown OCR engine '{engine}'"
+            return bool(which("tesseract") or os.path.isfile(r"C:\Program Files\Tesseract-OCR\tesseract.exe"))
+        return engine == "ocr-tool" and bool(which(engine))
 
-
-def pick_ocr_engine(requested: str) -> Tuple[Optional[str], str]:
-    """Resolve 'auto' to the first available engine; returns (engine, note)."""
-    if requested != "auto":
-        ok, note = ocr_engine_available(requested)
-        return (requested if ok else None), note
-    for cand in ("rapidocr", "paddleocr", "tesseract", "ocr-tool"):
-        ok, note = ocr_engine_available(cand)
-        if ok:
-            return cand, note
-    return None, "no OCR engine available"
+    return [engine for engine in candidates if available(engine)]
 
 
 def _run_tesseract_cli(img, exe: str, lang: str, page):
     import subprocess, tempfile, csv, io
+    requested = lang.split("+")
+    active = requested
+    if len(requested) > 1:
+        installed = set(subprocess.run([exe, "--list-langs"], capture_output=True, encoding="utf-8",
+                                       errors="replace", timeout=8, check=True).stdout.splitlines())
+        active = [code for code in requested if code in installed]
+        if not active:
+            raise RuntimeError(f"Tesseract has none of the requested languages: {lang}")
     fd, path = tempfile.mkstemp(suffix=".png"); os.close(fd)
     try:
-        img.save(path) if hasattr(img, "save") else None
-        tsv = subprocess.run([exe, path, "-l", lang, "tsv"], capture_output=True, text=True, timeout=600).stdout
+        Path(path).write_bytes(_img_to_png_bytes(img))
+        tsv = subprocess.run([exe, path, "stdout", "-l", "+".join(active), "tsv"], capture_output=True,
+                             encoding="utf-8", errors="replace", timeout=55, check=True).stdout
     finally:
         try: os.unlink(path)
         except Exception: pass
@@ -459,7 +435,8 @@ def _run_tesseract_cli(img, exe: str, lang: str, page):
         conf = sum(w[5] for w in ws) / len(ws) / 100.0
         lines.append(Line(" ".join(w[4] for w in ws), (x0 * scale, y0 * scale, x1 * scale, y1 * scale),
                           max(4.0, (y1 - y0) * scale * 0.75), "ocr:tesseract", False, False, page.number,
-                          meta={"ocr_conf": round(conf, 3)}))
+                          meta={"ocr_conf": round(conf, 3), "ocr_language": "+".join(active),
+                                "uncertain": active != requested}))
     return lines
 
 
@@ -468,9 +445,9 @@ def _run_ocr_tool_cli(img, exe: str, lang: str, page):
     import subprocess, tempfile
     fd, path = tempfile.mkstemp(suffix=".png"); os.close(fd)
     try:
-        if hasattr(img, "save"):
-            img.save(path)
-        cp = subprocess.run([exe, path, "-l", lang], capture_output=True, text=True, timeout=600)
+        Path(path).write_bytes(_img_to_png_bytes(img))
+        cp = subprocess.run([exe, path, "-l", lang], capture_output=True, encoding="utf-8",
+                            errors="replace", timeout=55, check=True)
         text = cp.stdout or ""
         if not text.strip() and cp.stderr:
             raise RuntimeError(cp.stderr.strip()[:200])
@@ -482,7 +459,6 @@ def _run_ocr_tool_cli(img, exe: str, lang: str, page):
 
 def ocr_page(page, engine: str, lang: str, dpi: int) -> Tuple[List[Line], str]:
     """OCR a rendered page; returns Lines (meta.ocr_conf in [0,1]) and a provenance note."""
-    key = (engine, lang, dpi)
     img = render_page(page, dpi)
     scale = page.rect.width / getattr(img, "width", page.rect.width)
     lines: List[Line] = []
@@ -496,18 +472,26 @@ def ocr_page(page, engine: str, lang: str, dpi: int) -> Tuple[List[Line], str]:
                 from rapidocr import RapidOCR
                 _OCR_CACHE["rapidocr"] = RapidOCR()
         eng = _OCR_CACHE["rapidocr"]
-        res, _elapse = eng(img)
+        result = eng(_img_to_png_bytes(img))
+        if isinstance(result, tuple):
+            res = result[0] or []
+        else:
+            boxes, texts, scores = result.boxes, result.txts, result.scores
+            res = zip(boxes, texts, scores) if boxes is not None and texts is not None and scores is not None else ()
         for box, text, conf in (res or []):
             xs = [p[0] for p in box]; ys = [p[1] for p in box]
             x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
             lines.append(Line(text, (x0 * scale, y0 * scale, x1 * scale, y1 * scale), max(4.0, (y1 - y0) * scale * 0.75),
                               "ocr:rapidocr", False, False, page.number, meta={"ocr_conf": round(float(conf), 3)}))
     elif engine == "paddleocr":
-        if "paddleocr" not in _OCR_CACHE:
+        cache_key = "paddleocr:" + lang
+        if cache_key not in _OCR_CACHE:
             from paddleocr import PaddleOCR
-            _OCR_CACHE["paddleocr"] = PaddleOCR(use_angle_cls=True, lang=("ch" if "ch" in lang else "en"), show_log=False)
-        eng = _OCR_CACHE["paddleocr"]
-        result = eng.ocr(_img_to_png_bytes(img), cls=True)
+            _OCR_CACHE[cache_key] = PaddleOCR(use_angle_cls=True, lang=("ch" if "ch" in lang else "en"), show_log=False)
+        eng = _OCR_CACHE[cache_key]
+        import numpy as np
+        image = np.asarray(img) if hasattr(img, "save") else np.frombuffer(img.samples, dtype=np.uint8).reshape(img.height, img.width)
+        result = eng.ocr(np.repeat(image[:, :, None], 3, axis=2), cls=True)
         for page_res in (result or []):
             for box, (text, conf) in (page_res or []):
                 xs = [p[0] for p in box]; ys = [p[1] for p in box]
@@ -549,6 +533,62 @@ def ocr_page(page, engine: str, lang: str, dpi: int) -> Tuple[List[Line], str]:
         if l.meta.get("ocr_conf", 1.0) < OCR_LOW_CONF:
             l.meta["uncertain"] = True
     return lines, note
+
+
+def _run_ocr_attempt(pdf_path, pno, engine, lang, dpi, password, timeout):
+    """Isolate OCR so a hung engine cannot consume the remaining case budget."""
+    request = json.dumps({"pdf": pdf_path, "page": pno, "engine": engine, "lang": lang,
+                          "dpi": dpi, "password": password}, ensure_ascii=False)
+    cp = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--ocr-worker"],
+                        input=request, encoding="utf-8", errors="replace",
+                        capture_output=True, timeout=timeout)
+    if cp.returncode:
+        raise RuntimeError(cp.stderr.strip().splitlines()[-1] if cp.stderr.strip() else f"OCR exited {cp.returncode}")
+    return [Line(**line) for line in json.loads(cp.stdout)]
+
+
+def _ocr_worker():
+    from contextlib import redirect_stdout
+
+    request = json.loads(sys.stdin.buffer.read().decode("utf-8"))
+    with redirect_stdout(sys.stderr), fitz.open(request["pdf"]) as doc:
+        if doc.needs_pass and not doc.authenticate(request["password"] or ""):
+            raise ValueError("OCR could not open the encrypted PDF")
+        lines, _ = ocr_page(doc[request["page"] - 1], request["engine"], request["lang"], request["dpi"])
+    print(json.dumps([asdict(line) for line in lines], ensure_ascii=True))
+
+
+def ocr_with_fallback(pdf_path, pno, engines, lang, dpi, password, deadline, notes):
+    best = ([], "")
+    best_quality = -1.0
+    for engine in engines:
+        timeout = min(65, deadline - time.monotonic()) if deadline is not None else 65
+        if timeout <= 0:
+            notes.append(f"page {pno}: OCR stopped at the case time budget.")
+            break
+        try:
+            lines = _run_ocr_attempt(pdf_path, pno, engine, lang, dpi, password, timeout)
+        except (subprocess.SubprocessError, OSError, ValueError, RuntimeError) as exc:
+            notes.append(f"page {pno}: OCR {engine} failed ({type(exc).__name__}): {str(exc)[:180]}")
+            continue
+        lines = [line for line in lines if line.text.strip()]
+        if not lines:
+            notes.append(f"page {pno}: OCR {engine} returned no text.")
+            continue
+        active = lines[0].meta.get("ocr_language")
+        language_mismatch = bool(active and active != lang)
+        mean = sum(line.meta.get("ocr_conf", 0.0) for line in lines) / len(lines)
+        if mean >= OCR_LOW_CONF and not language_mismatch:
+            return lines, engine
+        if language_mismatch:
+            notes.append(f"page {pno}: OCR {engine} used {active}, requested {lang}.")
+        else:
+            notes.append(f"page {pno}: OCR {engine} returned low-confidence text ({mean:.2f}).")
+        quality = mean * (0.5 if language_mismatch else 1.0)
+        if quality > best_quality:
+            best = lines, engine
+            best_quality = quality
+    return best
 
 
 # --------------------------------------------------------------------------------------
@@ -817,6 +857,8 @@ def make_block(lines: List[Line], kind: str, pno: int) -> Block:
     blk = Block(bid="", kind=kind, page=pno, bbox=union_bbox([l.bbox for l in lines]), lines=list(lines), text=text)
     if any(l.meta.get("uncertain") for l in lines):
         blk.flags.append("uncertain")
+    if any(l.meta.get("geometry") == "unknown" for l in lines):
+        blk.meta["geometry"] = "unknown"
     if any(l.font.startswith("ocr:") for l in lines):
         blk.flags.append("ocr")
         confs = [l.meta.get("ocr_conf", 1.0) for l in lines]
@@ -858,11 +900,15 @@ def merge_adjacent(blocks: List[Block], kinds_gap: Dict[str, float]) -> List[Blo
     for b in blocks:
         if out and out[-1].kind == b.kind and b.kind in kinds_gap and (b.bbox[1] - out[-1].bbox[3]) <= kinds_gap[b.kind]:
             p = out[-1]
-            if p.kind == "heading" and b.bbox[1] < p.bbox[3] - 2:
-                continue  # side-by-side headings (same line, separate columns) stay separate
+            horizontally_aligned = b.bbox[0] < p.bbox[2] and p.bbox[0] < b.bbox[2]
+            if not horizontally_aligned or (p.kind == "heading" and b.bbox[1] < p.bbox[3] - 2):
+                out.append(b)
+                continue
             p.lines.extend(b.lines)
             p.text = join_lines([x.text for x in p.lines])
             p.bbox = union_bbox([x.bbox for x in p.lines])
+            p.confidence = min(p.confidence, b.confidence)
+            p.flags.extend(flag for flag in b.flags if flag not in p.flags)
             continue
         out.append(b)
     return out
@@ -1445,6 +1491,8 @@ def stitch_cross_page(blocks: List[Block]) -> None:
         by_page[b.page].append(b)
     pages = sorted(by_page)
     for p0, p1 in zip(pages, pages[1:]):
+        if p1 != p0 + 1:
+            continue
         # last body paragraph on p0 (skip footers/footnotes) and first on p1 (skip header)
         a_cands = [b for b in by_page[p0] if b.kind in ("paragraph", "list", "abstract", "small_text") and "header" not in b.flags]
         b_cands = [b for b in by_page[p1] if b.kind in ("paragraph", "list", "abstract", "small_text")]
@@ -1481,7 +1529,7 @@ def table_continuations(tables: List[dict]) -> None:
     for t in tables:
         cap = (t.get("caption") or "").lower()
         if re.search(r"\b(continued|cont\.|续)\b", cap) or re.search(r"continued", " ".join(c["text"].lower() for c in t["cells"][:3])):
-            if prev is not None:
+            if prev is not None and t["page"] == prev["page"] + 1:
                 t["continued_from"] = prev["table_index"]
                 t["continues_table"] = prev.get("number")
                 prev["continued_by"] = t["table_index"]
@@ -1490,75 +1538,65 @@ def table_continuations(tables: List[dict]) -> None:
 
 def parse_document(pdf_path: str, out_dir: str, lang: str = "eng", ocr: str = "auto", pages: Optional[str] = None,
                    dpi: int = 200, password: Optional[str] = None, pretty: bool = True, include_lines: bool = False,
-                   questions: Optional[List[str]] = None, quiet: bool = False) -> dict:
+                   questions: Optional[List[str]] = None, quiet: bool = False,
+                   deadline: Optional[float] = None) -> dict:
+    if fitz is None:
+        raise RuntimeError("PyMuPDF is required. Install it with python -m pip install -r requirements.txt.")
     os.makedirs(out_dir, exist_ok=True)
-    started = now_iso()
     status_notes: List[str] = []
     blocks: List[Block] = []
     tables: List[dict] = []
     pages_meta: List[dict] = []
     doc_meta: dict = {}
     all_lines: Dict[int, List[Line]] = {}
-    engine_note = ""
     ocr_pages: List[int] = []
 
     if not os.path.isfile(pdf_path):
         raise FileNotFoundError(pdf_path)
     doc = fitz.open(pdf_path)
-    if doc.needs_pass:
-        ok = False
-        for pw in ([password] if password else []) + ["", "owner", "user"]:
-            try:
-                if doc.authenticate(pw):
-                    ok = True; break
-            except Exception:
-                pass
-        if not ok:
-            close = True
-            doc.close()
-            result = {"input": {"path": pdf_path}, "status": {"state": "failed", "reason": "encrypted PDF: password required"}, "blocks": [], "tables": [], "sections": []}
-            _write_json(os.path.join(out_dir, "document.json"), result, pretty)
-            return result
-        status_notes.append("PDF was encrypted; opened with an empty/known password.")
+    if doc.needs_pass and not doc.authenticate(password or ""):
+        doc.close()
+        raise ValueError("encrypted PDF: supply the document password with --password")
 
     # choose OCR engine
-    engine = None
-    if ocr != "off":
-        engine, note = pick_ocr_engine(ocr)
-        if engine:
-            status_notes.append(f"OCR fallback ready: {engine} ({note}).")
-        else:
-            status_notes.append(f"No OCR engine available ({note}). Scanned pages will be reported as unreadable.")
-
-    page_indices = parse_page_range(pages, len(doc))
-    pw, ph = doc[0].rect.width, doc[0].rect.height if len(doc) else 595.0
-    pw, ph = float(pw), float(ph)
+    engines = ocr_engines(ocr)
+    if engines:
+        status_notes.append("OCR fallback ready: " + ", ".join(engines))
+    elif ocr != "off":
+        status_notes.append("No OCR engine available. Scanned pages will be reported as unreadable.")
+    page_count = len(doc)
+    requested = parse_page_range(pages, page_count)
+    if not requested:
+        doc.close()
+        raise ValueError("No valid pages selected")
+    reserve = min(12, max(0.0, (deadline - time.monotonic()) * 0.25)) if deadline is not None else 0
+    layout_deadline = deadline - reserve if deadline is not None else None
+    ocr_deadline = layout_deadline - reserve if layout_deadline is not None else None
 
     # pass 1: lines (text layer or OCR)
-    for pno in page_indices:
+    for pno in requested:
+        if ocr_deadline is not None and time.monotonic() >= ocr_deadline:
+            status_notes.append("Case time budget reached during text extraction.")
+            break
         page = doc[pno - 1]
         lines = extract_lines(page, pno)
         source = "text_layer"
         if len("".join(l.text for l in lines).strip()) < 30:
-            if engine:
-                try:
-                    olines, engine_note = ocr_page(page, engine, lang, dpi)
-                    lines = olines
+            if engines:
+                original_lines = lines
+                lines, engine = ocr_with_fallback(pdf_path, pno, engines, lang, dpi, password, ocr_deadline, status_notes)
+                if lines:
                     source = f"ocr:{engine}"
-                    ocr_pages.append(pno)
-                    if not lines:
-                        status_notes.append(f"page {pno}: OCR produced no text.")
-                except Exception as e:
-                    status_notes.append(f"page {pno}: OCR failed ({e.__class__.__name__}: {e}); reported as unreadable.")
-                    lines = []
+                else:
+                    lines = original_lines
                     source = "ocr_failed"
             else:
                 source = "no_text_layer"
-                status_notes.append(f"page {pno}: no text layer and OCR unavailable; page reported as unreadable.")
+                status_notes.append(f"page {pno}: no usable text layer and OCR disabled or unavailable.")
         for l in lines:
             l.meta.setdefault("source", source)
         all_lines[pno] = lines
-        pm = {"page": pno, "width": pw, "height": ph, "text_source": source, "line_count": len(lines),
+        pm = {"page": pno, "width": float(page.rect.width), "height": float(page.rect.height), "text_source": source, "line_count": len(lines),
               "char_count": sum(len(l.text) for l in lines)}
         if source.startswith("ocr"):
             confs = [l.meta.get("ocr_conf", 1.0) for l in lines]
@@ -1567,10 +1605,20 @@ def parse_document(pdf_path: str, out_dir: str, lang: str = "eng", ocr: str = "a
         pages_meta.append(pm)
 
     body_size = body_font_size([l for ls in all_lines.values() for l in ls]) if all_lines else 10.0
-    hf = detect_header_footer(all_lines, ph)
+    # Learn recurring margins only from pages with comparable heights.
+    by_height = defaultdict(dict)
+    for pm in pages_meta:
+        by_height[round(pm["height"])][pm["page"]] = all_lines[pm["page"]]
+    margins = {height: detect_header_footer(lines, height) for height, lines in by_height.items()}
 
     # pass 2: tables + blocks per page
-    for pno in page_indices:
+    processed = []
+    for pm in pages_meta:
+        if layout_deadline is not None and time.monotonic() >= layout_deadline:
+            status_notes.append("Case time budget reached during page layout.")
+            break
+        pno, pw, ph = pm["page"], pm["width"], pm["height"]
+        hf = margins[round(ph)]
         page = doc[pno - 1]
         running = [l.bbox for l in all_lines[pno] if running_kind(l, hf, ph) is not None]
         tabs = extract_tables(page, pno, running)
@@ -1579,9 +1627,10 @@ def parse_document(pdf_path: str, out_dir: str, lang: str = "eng", ocr: str = "a
         blocks_p, dbg = build_page_blocks(pno, all_lines[pno], tabs, pw, ph, hf, body_size)
         blocks.extend(blocks_p)
         tables.extend(tabs)
-        for pm in pages_meta:
-            if pm["page"] == pno:
-                pm["layout"] = dbg
+        pm["layout"] = dbg
+        processed.append(pm)
+        if pm["text_source"].startswith("ocr:"):
+            ocr_pages.append(pno)
         # figure regions
         for b in blocks_p:
             if b.kind == "figure":
@@ -1621,35 +1670,43 @@ def parse_document(pdf_path: str, out_dir: str, lang: str = "eng", ocr: str = "a
     doc_meta["doi"] = doc_meta.get("doi") or find_doi(blocks)
 
     # status
-    n_unreadable = sum(1 for pm in pages_meta if (pm["text_source"] in ("no_text_layer", "ocr_failed")) or pm["char_count"] == 0)
+    page_indices = [pm["page"] for pm in processed]
+    unreadable = [pm["page"] for pm in processed
+                  if pm["text_source"] in ("no_text_layer", "ocr_failed") or pm["char_count"] == 0]
+    not_done = sorted(set(range(1, page_count + 1)).difference(page_indices))
     uncertain_blocks = sum(1 for b in blocks if "uncertain" in b.flags)
-    if n_unreadable == 0 and not status_notes:
-        state = "success"
-    elif n_unreadable == 0:
-        state = "success"
-    elif n_unreadable < len(page_indices):
+    if len(unreadable) == page_count:
+        state = "failed"
+    elif unreadable or not_done or uncertain_blocks:
         state = "partial"
     else:
-        state = "failed"
+        state = "success"
+    if not_done:
+        status_notes.append(f"{len(not_done)} page(s) unprocessed because of page selection or time budget.")
+    reason = None if state == "success" else (
+        "no usable text on any page" if state == "failed" else "unprocessed, unreadable, or uncertain page content"
+    )
+    block_records = [b.to_dict(include_lines) for b in blocks]
+    block_boxes = {b["id"]: b["bbox"] for b in block_records}
     result = {
         "schema": "pdfparse/v1",
         "parser": {"name": "pdfparse", "version": VERSION, "engine": fitz.__doc__.split()[1] if fitz.__doc__ and "PyMuPDF" in fitz.__doc__ else getattr(fitz, "version", ("?",))[0] if isinstance(getattr(fitz, "version", None), tuple) else "?"},
         "input": {"path": pdf_path, "bytes": os.path.getsize(pdf_path), "sha256": sha256_file(pdf_path),
-                  "pages": len(doc), "pages_parsed": page_indices},
+                   "pages": page_count, "pages_parsed": page_indices},
         "document": doc_meta,
-        "status": {"state": state, "pages_total": len(doc), "pages_parsed": len(page_indices),
-                   "pages_unreadable": [pm["page"] for pm in pages_meta if (pm["text_source"] in ("no_text_layer", "ocr_failed")) or pm["char_count"] == 0],
+        "status": {"state": state, "reason": reason, "pages_total": page_count, "pages_parsed": len(page_indices),
+                   "pages_unreadable": unreadable, "not_done": not_done,
                    "pages_ocr": ocr_pages, "uncertain_blocks": uncertain_blocks, "notes": status_notes},
-        "pages": pages_meta,
+        "pages": processed,
         "sections": tree,
-        "blocks": [b.to_dict(include_lines) for b in blocks],
+        "blocks": block_records,
         "tables": [serialize_table(t) for t in tables],
         "figures": [serialize_figure(b) for b in blocks if b.kind == "figure"],
-        "equations": [{"id": b.bid, "page": b.page, "bbox": [round(v, 2) for v in b.bbox], "text": b.text, "tag": (EQ_TAG_RE.search(b.text) or {}).groupdict().get("tag") if EQ_TAG_RE.search(b.text) else None}
+        "equations": [{"id": b.bid, "page": b.page, "bbox": block_boxes[b.bid], "text": b.text, "tag": (EQ_TAG_RE.search(b.text) or {}).groupdict().get("tag") if EQ_TAG_RE.search(b.text) else None}
                       for b in blocks if b.kind == "equation"],
         "headers_footers": [{"id": b.bid, "page": b.page, "type": b.kind, "text": b.text} for b in blocks if b.kind in ("header", "footer", "page_number")],
-        "footnotes": [{"id": b.bid, "page": b.page, "text": b.text, "bbox": [round(v, 2) for v in b.bbox]} for b in blocks if b.kind == "footnote"],
-        "references": [{"id": b.bid, "page": b.page, "text": b.text} for b in blocks if b.kind == "reference"],
+        "footnotes": [{"id": b.bid, "page": b.page, "text": b.text, "bbox": block_boxes[b.bid]} for b in blocks if b.kind == "footnote"],
+        "references": [{"id": b.bid, "page": b.page, "text": b.text, "bbox": block_boxes[b.bid]} for b in blocks if b.kind == "reference"],
     }
     if questions:
         result["answers"] = answer_questions(result, questions)
@@ -1681,7 +1738,7 @@ def serialize_table(t: dict) -> dict:
 
 
 def serialize_figure(b: Block) -> dict:
-    return {"id": b.bid, "number": b.number, "page": b.page, "bbox": [round(v, 2) for v in b.bbox],
+    return {"id": b.bid, "number": b.number, "page": b.page, "bbox": None if b.meta.get("geometry") == "unknown" else [round(v, 2) for v in b.bbox],
             "caption": b.meta.get("caption") or b.text, "figure_region": b.meta.get("figure_region"),
             "note": "figure content is reported as a located block with its caption; plotted values are not interpreted"}
 
@@ -1760,11 +1817,15 @@ def _tokens(s: str) -> List[str]:
 
 
 def answer_questions(doc: dict, questions: List[str]) -> List[dict]:
-    """Lexical retrieval over grounded blocks. Each answer cites block ids and pages; says not found when unsure."""
-    corpus = [(b, _tokens(b["text"])) for b in doc["blocks"] if b["text"] and b["type"] not in ("header", "footer", "page_number")]
-    for t in doc["tables"]:
-        corpus.append(({"id": t["id"], "type": "table", "page": t["page"], "text": t["markdown"] or " ".join(c["text"] for c in t["cells"]),
-                        "bbox": t["bbox"], "flags": []}, _tokens(" ".join(c["text"] for c in t["cells"]))))
+    """Retrieve source-anchored candidates for the Agent to verify."""
+    tables = {t["id"]: t["markdown"] for t in doc["tables"] if t["id"] and t.get("markdown")}
+    corpus = []
+    for block in doc["blocks"]:
+        if block["type"] in ("header", "footer", "page_number"):
+            continue
+        text = tables.get(block["id"]) or block["text"]
+        if text:
+            corpus.append(({**block, "text": text}, _tokens(text)))
     df: Counter = Counter()
     for _b, toks in corpus:
         df.update(set(toks))
@@ -1778,44 +1839,40 @@ def answer_questions(doc: dict, questions: List[str]) -> List[dict]:
             tf = Counter(toks)
             if not tf:
                 continue
-            btext = " ".join(b.get("text", "").lower().split())
             score = sum((1 + math.log(tf[t])) * math.log(1 + n / (1 + df[t])) for t in qt if t in tf)
-            btoks = _tokens(b.get("text", ""))
-            score += 2.0 * sum(1 for bg in qt_bigrams if bg in " ".join(btoks))   # phrase matches beat single-word matches
+            flattened = " ".join(toks)
+            score += 2.0 * sum(1 for bg in qt_bigrams if bg in flattened)
             if score > 0:
                 scored.append((score, b))
         scored.sort(key=lambda x: -x[0])
         top = scored[:3]
         if not top:
             out.append({"question": q, "answer": None, "status": "not_found",
-                        "evidence": [], "note": "No block in the parsed document matches the question terms."})
+                         "evidence": [], "requires_verification": True,
+                         "note": "The lexical search returned no candidates. Check the original document before concluding absence."})
             continue
         best_score = top[0][0]
         ev = [{"id": b["id"], "page": b["page"], "type": b["type"], "bbox": b["bbox"], "text": b["text"][:600],
                "score": round(s, 3)} for s, b in top]
-        conf = "high" if (len(top) == 1 or best_score / max(1e-9, top[-1][0]) > 1.5) else "medium"
-        if best_score < 2.0:
-            conf = "low"
-        answer_text, sentence_hits = _best_sentence(top, qt)
-        src_id = None
-        for _s, b in top:
-            if answer_text and answer_text[:80] in (b.get("text") or ""):
-                src_id = b["id"]; break
+        answer_text, sentence_hits, source = _best_sentence(top, qt)
+        src_id = source["id"] if source else None
+        weak = (not source or not source.get("bbox") or "uncertain" in source.get("flags", [])
+                or sentence_hits <= 0 or best_score < 2.0)
         for e in ev:
             e["contains_answer"] = (e["id"] == src_id)
-        out.append({"question": q, "answer": answer_text, "status": "found" if conf != "low" else "uncertain",
-                    "confidence": conf, "evidence": ev, "answer_block": src_id, "answer_sentence_score": round(sentence_hits, 3),
-                    "note": "Answer is the sentence in the top-ranked grounded blocks that best matches the question; "
-                            "verify against the cited page/bbox before use."})
+        out.append({"question": q, "answer": answer_text, "status": "uncertain" if weak else "candidate",
+                    "confidence": "low" if weak else "medium", "evidence": ev, "answer_block": src_id,
+                    "requires_verification": True, "answer_sentence_score": round(sentence_hits, 3),
+                    "note": "Lexical candidate. Confirm the answer, conditions, and cited region in the original PDF."})
     return out
 
 
-def _best_sentence(top: List[Tuple[float, dict]], qt: List[str]) -> Tuple[str, float]:
+def _best_sentence(top: List[Tuple[float, dict]], qt: List[str]) -> Tuple[Optional[str], float, Optional[dict]]:
     """Pick the sentence (or short line window) from the top blocks that overlaps the question terms most;
     prefers sentences that carry a number when the question looks numeric (how many / what is the ...)."""
     numeric_q = any(w in " ".join(qt) for w in ("how", "many", "much", "what", "number", "rate", "accuracy", "f1", "time", "多少", "几"))
     bigrams = [" ".join(p) for p in zip(qt, qt[1:])]
-    best, best_s = None, -1.0
+    best, best_s, source = None, -1.0, None
     for _s, b in top:
         text = b.get("text") or ""
         if b.get("type") == "table":
@@ -1835,10 +1892,8 @@ def _best_sentence(top: List[Tuple[float, dict]], qt: List[str]) -> Tuple[str, f
             if numeric_q and re.search(r"\d", s):
                 sc += 0.15
             if sc > best_s:
-                best, best_s = s, sc
-    if best is None:
-        return (top[0][1].get("text") or "")[:600], 0.0
-    return best, best_s
+                best, best_s, source = s, sc, b
+    return best, best_s, source
 
 
 # --------------------------------------------------------------------------------------
@@ -1933,10 +1988,10 @@ def parse_page_range(spec: Optional[str], n: int) -> List[int]:
             continue
         if "-" in part:
             a, b = part.split("-", 1)
-            out.extend(range(int(a or 1), int(b or n) + 1))
+            out.extend(range(max(1, int(a or 1)), min(n, int(b or n)) + 1))
         else:
             out.append(int(part))
-    return [p for p in out if 1 <= p <= n]
+    return sorted({p for p in out if 1 <= p <= n})
 
 
 def sha256_file(path: str) -> str:
@@ -1959,7 +2014,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("out_dir")
     ap.add_argument("--lang", default="eng", help="OCR language (tesseract codes, e.g. eng, chi_sim, eng+chi_sim)")
     ap.add_argument("--ocr", default="auto", choices=["auto", "tesseract", "rapidocr", "paddleocr", "ocr-tool", "off"],
-                    help="OCR engine for pages without a text layer (auto = first available: rapidocr, paddleocr, tesseract, ocr-tool)")
+                    help="OCR engine for pages without a text layer (auto tries available engines in order)")
     ap.add_argument("--pages", default=None, help="1-based page range, e.g. 1-3,5")
     ap.add_argument("--dpi", type=int, default=200)
     ap.add_argument("--password", default=None)
@@ -1974,10 +2029,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 qs = qs.get("questions", [])
         else:
             qs = [q.strip() for q in args.questions.split(";") if q.strip()]
-    parse_document(args.pdf, args.out_dir, lang=args.lang, ocr=args.ocr, pages=args.pages, dpi=args.dpi,
-                   password=args.password, include_lines=args.lines, questions=qs)
-    return 0
+    result = parse_document(args.pdf, args.out_dir, lang=args.lang, ocr=args.ocr, pages=args.pages, dpi=args.dpi,
+                            password=args.password, include_lines=args.lines, questions=qs)
+    return int(result["status"]["state"] == "failed")
 
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--ocr-worker"]:
+        _ocr_worker()
+        sys.exit(0)
     sys.exit(main())
