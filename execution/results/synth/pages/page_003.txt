@@ -1,0 +1,17 @@
+Table 2 (continued)
+
+Document type Count Text F1 Scanned, OCR A 10 0.938 Scanned, OCR B 8 0.911
+
+Scanned documents were processed with the OCR fallback.
+
+References
+
+[1] J. Doe, K. Lee, Block-level reading order for multi-column documents, in: Proceedings of ICDAR, 2024, pp. 112–120.
+
+[2] Y. Xu, M. Brown, S. Petrov, LayoutLM: Pre-training of text and layout for document image understanding, in: KDD, 2020, pp. 1192–1200.
+
+[3] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. Gomez, Ł. Kaiser, I. Polosukhin, Attention is all you need, in: NeurIPS, 2017.
+
+[4] A. Krizhevsky, I. Sutskever, G. Hinton, ImageNet classification with deep convolutional neural networks, Commun. ACM 60 (6) (2017) 84–90.
+
+[5] A. Cojocaru, E. B. Smith, D. R. Jones, On the reproducibility of PDF extraction benchmarks, J. Reprod. Sci. 11 (2025) 45–61.

@@ -1,0 +1,125 @@
+{
+  "case_id": "synth-scan-neg",
+  "schema": "pdfparse-case/v1",
+  "input": {
+    "path": "D:\\DSH default\\challenge\\skill\\examples\\synth_paper_scan.pdf",
+    "bytes": 297232,
+    "sha256": "4a538eee25ec6c65f805ac8526b28626a58bff4a6b5002b8cac27525f26dfec3",
+    "pages": 3,
+    "pages_parsed": [
+      1,
+      2,
+      3
+    ]
+  },
+  "status": {
+    "state": "failed",
+    "reason": null,
+    "pages_total": 3,
+    "pages_parsed": 3,
+    "pages_unreadable": [
+      1,
+      2,
+      3
+    ],
+    "pages_ocr": [],
+    "uncertain_blocks": 0,
+    "elapsed_s": 0.04,
+    "notes": [
+      "No OCR engine available (no OCR engine available). Scanned pages will be reported as unreadable.",
+      "page 1: no text layer and OCR unavailable; page reported as unreadable.",
+      "page 2: no text layer and OCR unavailable; page reported as unreadable.",
+      "page 3: no text layer and OCR unavailable; page reported as unreadable."
+    ],
+    "limits": []
+  },
+  "result": {
+    "document": {
+      "title": null,
+      "authors": null,
+      "affiliations": [],
+      "abstract": null,
+      "keywords": null,
+      "doi": null,
+      "reference_count": null
+    },
+    "sections": [],
+    "reading_order": [],
+    "tables": [],
+    "figures": [],
+    "equations": [],
+    "references": [],
+    "footnotes": [],
+    "questions": []
+  },
+  "evidence": {
+    "block_index": [],
+    "pages": [
+      {
+        "page": 1,
+        "width": 595.280029296875,
+        "height": 841.8900146484375,
+        "text_source": "no_text_layer",
+        "ocr_mean_conf": null,
+        "columns": 0
+      },
+      {
+        "page": 2,
+        "width": 595.280029296875,
+        "height": 841.8900146484375,
+        "text_source": "no_text_layer",
+        "ocr_mean_conf": null,
+        "columns": 0
+      },
+      {
+        "page": 3,
+        "width": 595.280029296875,
+        "height": 841.8900146484375,
+        "text_source": "no_text_layer",
+        "ocr_mean_conf": null,
+        "columns": 0
+      }
+    ],
+    "artifacts": {
+      "document_json": "document.json",
+      "document_md": "document.md",
+      "tables_dir": null,
+      "pages_dir": "pages"
+    }
+  },
+  "uncertainty": {
+    "unreadable_pages": [
+      1,
+      2,
+      3
+    ],
+    "ocr_pages": [],
+    "low_confidence_blocks": [],
+    "notes": [
+      "No OCR engine available (no OCR engine available). Scanned pages will be reported as unreadable.",
+      "page 1: no text layer and OCR unavailable; page reported as unreadable.",
+      "page 2: no text layer and OCR unavailable; page reported as unreadable.",
+      "page 3: no text layer and OCR unavailable; page reported as unreadable."
+    ],
+    "not_done": []
+  },
+  "changes": [],
+  "sources": [
+    {
+      "type": "file",
+      "path": "D:\\DSH default\\challenge\\skill\\examples\\synth_paper_scan.pdf",
+      "sha256": "4a538eee25ec6c65f805ac8526b28626a58bff4a6b5002b8cac27525f26dfec3",
+      "pages": 3
+    }
+  ],
+  "tools": {
+    "name": "pdfparse",
+    "version": "1.0.0",
+    "engine": "1.28.2:"
+  },
+  "runtime": {
+    "work_dir": "D:\\DSH default\\challenge\\skill\\execution\\results\\_work_scan",
+    "python": "3.12.14",
+    "pdfparse": "1.0.0"
+  }
+}

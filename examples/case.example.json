@@ -1,0 +1,13 @@
+{
+  "case_id": "synth-demo-001",
+  "pdf": "synth_paper.pdf",
+  "title": "Attention-free parsing of scientific PDFs",
+  "output_contract": {
+    "required": ["case_id", "status", "result", "evidence", "uncertainty"]
+  },
+  "questions": [
+    "What is the table cell accuracy of the proposed method?",
+    "How many scanned papers are in DocBench-120?",
+    "What is the running time per page?"
+  ]
+}

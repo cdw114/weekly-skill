@@ -1,0 +1,92 @@
+{
+  "schema": "pdfparse/v1",
+  "parser": {
+    "name": "pdfparse",
+    "version": "1.0.0",
+    "engine": "1.28.2:"
+  },
+  "input": {
+    "path": "D:\\DSH default\\challenge\\skill\\examples\\synth_paper_scan.pdf",
+    "bytes": 297232,
+    "sha256": "4a538eee25ec6c65f805ac8526b28626a58bff4a6b5002b8cac27525f26dfec3",
+    "pages": 3,
+    "pages_parsed": [
+      1,
+      2,
+      3
+    ]
+  },
+  "document": {
+    "title": null,
+    "authors": null,
+    "affiliations": [],
+    "abstract": null,
+    "keywords": null,
+    "doi": null,
+    "reference_count": null
+  },
+  "status": {
+    "state": "failed",
+    "pages_total": 3,
+    "pages_parsed": 3,
+    "pages_unreadable": [
+      1,
+      2,
+      3
+    ],
+    "pages_ocr": [],
+    "uncertain_blocks": 0,
+    "notes": [
+      "No OCR engine available (no OCR engine available). Scanned pages will be reported as unreadable.",
+      "page 1: no text layer and OCR unavailable; page reported as unreadable.",
+      "page 2: no text layer and OCR unavailable; page reported as unreadable.",
+      "page 3: no text layer and OCR unavailable; page reported as unreadable."
+    ]
+  },
+  "pages": [
+    {
+      "page": 1,
+      "width": 595.280029296875,
+      "height": 841.8900146484375,
+      "text_source": "no_text_layer",
+      "line_count": 0,
+      "char_count": 0,
+      "layout": {
+        "columns": 0,
+        "bands": 0
+      }
+    },
+    {
+      "page": 2,
+      "width": 595.280029296875,
+      "height": 841.8900146484375,
+      "text_source": "no_text_layer",
+      "line_count": 0,
+      "char_count": 0,
+      "layout": {
+        "columns": 0,
+        "bands": 0
+      }
+    },
+    {
+      "page": 3,
+      "width": 595.280029296875,
+      "height": 841.8900146484375,
+      "text_source": "no_text_layer",
+      "line_count": 0,
+      "char_count": 0,
+      "layout": {
+        "columns": 0,
+        "bands": 0
+      }
+    }
+  ],
+  "sections": [],
+  "blocks": [],
+  "tables": [],
+  "figures": [],
+  "equations": [],
+  "headers_footers": [],
+  "footnotes": [],
+  "references": []
+}

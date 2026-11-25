@@ -1,0 +1,158 @@
+{
+  "id": "p3-b03",
+  "number": "2",
+  "page": 3,
+  "bbox": [
+    42.52,
+    79.37,
+    286.3,
+    127.56
+  ],
+  "caption": "(continued)",
+  "caption_block": "p3-b02",
+  "row_count": 3,
+  "col_count": 3,
+  "header_rows": 1,
+  "grid": [
+    [
+      "Document type",
+      "Count",
+      "Text F1"
+    ],
+    [
+      "Scanned, OCR A",
+      "10",
+      "0.938"
+    ],
+    [
+      "Scanned, OCR B",
+      "8",
+      "0.911"
+    ]
+  ],
+  "cells": [
+    {
+      "text": "Document type",
+      "bbox": [
+        42.52,
+        79.37,
+        155.91,
+        96.38
+      ],
+      "row": 0,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Count",
+      "bbox": [
+        155.91,
+        79.37,
+        221.11,
+        96.38
+      ],
+      "row": 0,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Text F1",
+      "bbox": [
+        221.11,
+        79.37,
+        286.3,
+        96.38
+      ],
+      "row": 0,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Scanned, OCR A",
+      "bbox": [
+        42.52,
+        96.38,
+        155.91,
+        111.97
+      ],
+      "row": 1,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "10",
+      "bbox": [
+        155.91,
+        96.38,
+        221.11,
+        111.97
+      ],
+      "row": 1,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.938",
+      "bbox": [
+        221.11,
+        96.38,
+        286.3,
+        111.97
+      ],
+      "row": 1,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Scanned, OCR B",
+      "bbox": [
+        42.52,
+        111.97,
+        155.91,
+        127.56
+      ],
+      "row": 2,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "8",
+      "bbox": [
+        155.91,
+        111.97,
+        221.11,
+        127.56
+      ],
+      "row": 2,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.911",
+      "bbox": [
+        221.11,
+        111.97,
+        286.3,
+        127.56
+      ],
+      "row": 2,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    }
+  ],
+  "markdown": "| Document type | Count | Text F1 |\n|---|---|---|\n| Scanned, OCR A | 10 | 0.938 |\n| Scanned, OCR B | 8 | 0.911 |",
+  "html": "<table>\n <tr>\n  <th>Document type</th>\n  <th>Count</th>\n  <th>Text F1</th>\n </tr>\n <tr>\n  <td>Scanned, OCR A</td>\n  <td>10</td>\n  <td>0.938</td>\n </tr>\n <tr>\n  <td>Scanned, OCR B</td>\n  <td>8</td>\n  <td>0.911</td>\n </tr>\n</table>",
+  "continued_from": 1,
+  "continued_by": null,
+  "extraction": "pymupdf.find_tables",
+  "flags": []
+}

@@ -1,0 +1,2555 @@
+{
+  "schema": "pdfparse/v1",
+  "parser": {
+    "name": "pdfparse",
+    "version": "1.0.0",
+    "engine": "1.28.2:"
+  },
+  "input": {
+    "path": "D:\\DSH default\\challenge\\skill\\examples\\synth_paper.pdf",
+    "bytes": 88206,
+    "sha256": "fa3cb311de4263444e3a7ecb1258b3ea4c1bb9172713d8ab5a11ce4ea48158bc",
+    "pages": 3,
+    "pages_parsed": [
+      1,
+      2,
+      3
+    ]
+  },
+  "document": {
+    "title": "Attention-free parsing of scientific PDFs: a layout-first approach",
+    "authors": "Jane Doe a, John Smith b, Wei Zhang a",
+    "affiliations": [
+      "a Department of Computer Science, Example University, Cambridge, UK",
+      "b Institute for Document Intelligence, Shanghai, China"
+    ],
+    "abstract": "We present a layout-first pipeline that converts scientific PDFs into structured, page-grounded documents. Instead of relying on a single text-extraction pass, the pipeline segments each page into blocks, classifies them, orders them by a column-aware reading-order model, and reconstructs tables and equations as structured objects. On a benchmark of 120 papers, the method reaches a word-level F1 of 0.982 and a table cell accuracy of 0.941, outperforming the strongest baseline by 3.4 points.",
+    "keywords": [
+      "document parsing",
+      "reading order",
+      "layout analysis",
+      "tables",
+      "OCR"
+    ],
+    "doi": null,
+    "reference_count": 5
+  },
+  "status": {
+    "state": "success",
+    "pages_total": 3,
+    "pages_parsed": 3,
+    "pages_unreadable": [],
+    "pages_ocr": [],
+    "uncertain_blocks": 0,
+    "notes": [
+      "No OCR engine available (no OCR engine available). Scanned pages will be reported as unreadable."
+    ]
+  },
+  "pages": [
+    {
+      "page": 1,
+      "width": 595.280029296875,
+      "height": 841.8900146484375,
+      "text_source": "text_layer",
+      "line_count": 105,
+      "char_count": 4460,
+      "layout": {
+        "columns": 2,
+        "bands": 5
+      }
+    },
+    {
+      "page": 2,
+      "width": 595.280029296875,
+      "height": 841.8900146484375,
+      "text_source": "text_layer",
+      "line_count": 64,
+      "char_count": 2225,
+      "layout": {
+        "columns": 2,
+        "bands": 1
+      }
+    },
+    {
+      "page": 3,
+      "width": 595.280029296875,
+      "height": 841.8900146484375,
+      "text_source": "text_layer",
+      "line_count": 22,
+      "char_count": 984,
+      "layout": {
+        "columns": 1,
+        "bands": 6
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "p1-b02",
+      "number": null,
+      "title": "Attention-free parsing of scientific PDFs: a layout-first approach",
+      "level": 0,
+      "page": 1,
+      "block_ids": [
+        "p1-b03",
+        "p1-b04",
+        "p1-b05",
+        "p1-b06",
+        "p1-b07"
+      ],
+      "children": [
+        {
+          "id": "p1-b08",
+          "number": "1",
+          "title": "Introduction",
+          "level": 1,
+          "page": 1,
+          "block_ids": [
+            "p1-b09",
+            "p1-b10"
+          ],
+          "children": [
+            {
+              "id": "p1-b11",
+              "number": "1.1",
+              "title": "Contributions",
+              "level": 2,
+              "page": 1,
+              "block_ids": [
+                "p1-b12",
+                "p1-b13",
+                "p1-b14",
+                "p1-b15"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "p1-b16",
+          "number": "2",
+          "title": "Related work",
+          "level": 1,
+          "page": 1,
+          "block_ids": [
+            "p1-b17",
+            "p1-b18"
+          ],
+          "children": []
+        },
+        {
+          "id": "p1-b19",
+          "number": "3",
+          "title": "Method",
+          "level": 1,
+          "page": 1,
+          "block_ids": [
+            "p1-b20",
+            "p1-b21",
+            "p1-b22",
+            "p1-b23",
+            "p1-b24",
+            "p1-b25",
+            "p1-b26",
+            "p1-b27",
+            "p2-b01"
+          ],
+          "children": []
+        },
+        {
+          "id": "p2-b02",
+          "number": "4",
+          "title": "Experiments",
+          "level": 1,
+          "page": 2,
+          "block_ids": [
+            "p2-b03"
+          ],
+          "children": [
+            {
+              "id": "p2-b04",
+              "number": "4.1",
+              "title": "Ablation",
+              "level": 2,
+              "page": 2,
+              "block_ids": [
+                "p2-b05",
+                "p2-b06",
+                "p2-b07",
+                "p2-b08"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "p2-b09",
+          "number": "5",
+          "title": "Discussion",
+          "level": 1,
+          "page": 2,
+          "block_ids": [
+            "p2-b10",
+            "p2-b11"
+          ],
+          "children": []
+        },
+        {
+          "id": "p2-b12",
+          "number": "6",
+          "title": "Conclusion",
+          "level": 1,
+          "page": 2,
+          "block_ids": [
+            "p2-b13",
+            "p2-b14",
+            "p2-b15",
+            "p2-b16",
+            "p3-b01",
+            "p3-b02",
+            "p3-b03",
+            "p3-b04",
+            "p3-b05",
+            "p3-b06",
+            "p3-b07",
+            "p3-b08",
+            "p3-b09",
+            "p3-b10",
+            "p3-b11"
+          ],
+          "children": []
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "p1-b01",
+      "type": "header",
+      "page": 1,
+      "bbox": [
+        45.35,
+        29.48,
+        549.93,
+        37.86
+      ],
+      "text": "Journal of Reproducible Science 12 (2026) 1–14 Attention-free parsing of scientific PDFs",
+      "level": 0,
+      "number": null,
+      "parent": null,
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b02",
+      "type": "title",
+      "page": 1,
+      "bbox": [
+        99.36,
+        47.41,
+        495.93,
+        61.94
+      ],
+      "text": "Attention-free parsing of scientific PDFs: a layout-first approach",
+      "level": 0,
+      "number": null,
+      "parent": null,
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "title": "Attention-free parsing of scientific PDFs: a layout-first approach",
+        "_node": {
+          "id": "p1-b02",
+          "number": null,
+          "title": "Attention-free parsing of scientific PDFs: a layout-first approach",
+          "level": 0,
+          "page": 1,
+          "children": [],
+          "block_ids": [
+            "p1-b03",
+            "p1-b04",
+            "p1-b05",
+            "p1-b06",
+            "p1-b07"
+          ]
+        },
+        "_members": [
+          "p1-b03",
+          "p1-b04",
+          "p1-b05",
+          "p1-b06",
+          "p1-b07"
+        ],
+        "_children": [
+          {
+            "id": "p1-b08",
+            "number": "1",
+            "title": "Introduction",
+            "level": 1,
+            "page": 1,
+            "children": [],
+            "block_ids": [
+              "p1-b09",
+              "p1-b10"
+            ]
+          },
+          {
+            "id": "p1-b16",
+            "number": "2",
+            "title": "Related work",
+            "level": 1,
+            "page": 1,
+            "children": [],
+            "block_ids": [
+              "p1-b17",
+              "p1-b18"
+            ]
+          },
+          {
+            "id": "p1-b19",
+            "number": "3",
+            "title": "Method",
+            "level": 1,
+            "page": 1,
+            "children": [],
+            "block_ids": [
+              "p1-b20",
+              "p1-b21",
+              "p1-b22",
+              "p1-b23",
+              "p1-b24",
+              "p1-b25",
+              "p1-b26",
+              "p1-b27",
+              "p2-b01"
+            ]
+          },
+          {
+            "id": "p2-b02",
+            "number": "4",
+            "title": "Experiments",
+            "level": 1,
+            "page": 2,
+            "children": [],
+            "block_ids": [
+              "p2-b03"
+            ]
+          },
+          {
+            "id": "p2-b09",
+            "number": "5",
+            "title": "Discussion",
+            "level": 1,
+            "page": 2,
+            "children": [],
+            "block_ids": [
+              "p2-b10",
+              "p2-b11"
+            ]
+          },
+          {
+            "id": "p2-b12",
+            "number": "6",
+            "title": "Conclusion",
+            "level": 1,
+            "page": 2,
+            "children": [],
+            "block_ids": [
+              "p2-b13",
+              "p2-b14",
+              "p2-b15",
+              "p2-b16",
+              "p3-b01",
+              "p3-b02",
+              "p3-b03",
+              "p3-b04",
+              "p3-b05",
+              "p3-b06",
+              "p3-b07",
+              "p3-b08",
+              "p3-b09",
+              "p3-b10",
+              "p3-b11"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "p1-b03",
+      "type": "authors",
+      "page": 1,
+      "bbox": [
+        208.98,
+        67.65,
+        386.29,
+        78.82
+      ],
+      "text": "Jane Doe a, John Smith b, Wei Zhang a",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b04",
+      "type": "affiliation",
+      "page": 1,
+      "bbox": [
+        160.89,
+        84.15,
+        434.39,
+        107.81
+      ],
+      "text": "a Department of Computer Science, Example University, Cambridge, UK b Institute for Document Intelligence, Shanghai, China",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b05",
+      "type": "paragraph",
+      "page": 1,
+      "bbox": [
+        45.35,
+        115.03,
+        135.87,
+        125.08
+      ],
+      "text": "A R T I C L E   I N F O",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b06",
+      "type": "paragraph",
+      "page": 1,
+      "bbox": [
+        45.35,
+        128.39,
+        439.87,
+        148.67
+      ],
+      "text": "Article history: Received 3 March 2026; Received in revised form 21 May 2026; Accepted 2 June 2026 Keywords: document parsing; reading order; layout analysis; tables; OCR",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b07",
+      "type": "abstract",
+      "page": 1,
+      "bbox": [
+        45.35,
+        159.55,
+        549.92,
+        204.76
+      ],
+      "text": "A B S T R A C T We present a layout-first pipeline that converts scientific PDFs into structured, page-grounded documents. Instead of relying on a single text-extraction pass, the pipeline segments each page into blocks, classifies them, orders them by a column-aware reading-order model, and reconstructs tables and equations as structured objects. On a benchmark of 120 papers, the method reaches a word-level F1 of 0.982 and a table cell accuracy of 0.941, outperforming the strongest baseline by 3.4 points.",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b08",
+      "type": "heading",
+      "page": 1,
+      "bbox": [
+        45.35,
+        250.49,
+        114.8,
+        261.66
+      ],
+      "text": "1. Introduction",
+      "level": 1,
+      "number": "1",
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "title": "Introduction",
+        "_node": {
+          "id": "p1-b08",
+          "number": "1",
+          "title": "Introduction",
+          "level": 1,
+          "page": 1,
+          "children": [],
+          "block_ids": [
+            "p1-b09",
+            "p1-b10"
+          ]
+        },
+        "_members": [
+          "p1-b09",
+          "p1-b10"
+        ],
+        "_children": [
+          {
+            "id": "p1-b11",
+            "number": "1.1",
+            "title": "Contributions",
+            "level": 2,
+            "page": 1,
+            "children": [],
+            "block_ids": [
+              "p1-b12",
+              "p1-b13",
+              "p1-b14",
+              "p1-b15"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "p1-b09",
+      "type": "paragraph",
+      "page": 1,
+      "bbox": [
+        45.35,
+        266.96,
+        283.46,
+        372.26
+      ],
+      "text": "The volume of scientific literature grows faster than any researcher can read. Automated assistants that summarize, translate or answer questions over papers therefore depend on a faithful conversion of the PDF into text and structure. Yet the Portable Document Format was never designed to carry semantics: it is a page-description language in which glyphs are placed at absolute coordinates, and the logical structure is at best an optional tag.",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b08",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b10",
+      "type": "paragraph",
+      "page": 1,
+      "bbox": [
+        45.35,
+        379.79,
+        283.46,
+        496.99
+      ],
+      "text": "Naive extraction that sorts glyphs by their vertical position interleaves the two columns of a double-column page, producing sentences that read \"the model was trained on 12,431 pairs of images and achieves state-of-the-art results\" out of two unrelated paragraphs. Downstream translation and question answering then inherit these errors silently. This paper argues that the ordering problem must be solved at the level of layout blocks rather than individual characters, and that every extracted span should carry a pointer back to the page region it came from.",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b08",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b11",
+      "type": "heading",
+      "page": 1,
+      "bbox": [
+        45.35,
+        505.04,
+        130.36,
+        516.21
+      ],
+      "text": "1.1. Contributions",
+      "level": 2,
+      "number": "1.1",
+      "parent": "p1-b08",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "title": "Contributions",
+        "_node": {
+          "id": "p1-b11",
+          "number": "1.1",
+          "title": "Contributions",
+          "level": 2,
+          "page": 1,
+          "children": [],
+          "block_ids": [
+            "p1-b12",
+            "p1-b13",
+            "p1-b14",
+            "p1-b15"
+          ]
+        },
+        "_members": [
+          "p1-b12",
+          "p1-b13",
+          "p1-b14",
+          "p1-b15"
+        ]
+      }
+    },
+    {
+      "id": "p1-b12",
+      "type": "list",
+      "page": 1,
+      "bbox": [
+        45.35,
+        521.52,
+        283.46,
+        531.57
+      ],
+      "text": "(i) A column-aware reading-order algorithm that handles",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b11",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b13",
+      "type": "paragraph",
+      "page": 1,
+      "bbox": [
+        45.35,
+        533.42,
+        283.46,
+        603.0
+      ],
+      "text": "cross-column floats and cross-page paragraphs. (ii) A table reconstructor that resolves merged cells and multi-level headers into a rectangular grid with explicit spans. (iii) A grounding layer that attaches page and bounding box to every output element, and marks unreadable regions instead of guessing.1",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b11",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b14",
+      "type": "figure",
+      "page": 1,
+      "bbox": [
+        45.35,
+        611.96,
+        447.87,
+        621.45
+      ],
+      "text": "Figure 1. Overview of the pipeline. Pages are segmented into blocks, blocks are classified, then ordered.",
+      "level": 0,
+      "number": "1",
+      "parent": "p1-b11",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "type": "figure",
+        "label": "Figure 1",
+        "caption": "Overview of the pipeline. Pages are segmented into blocks, blocks are classified, then ordered.",
+        "caption_prefix": "Figure 1.",
+        "figure_region": null
+      }
+    },
+    {
+      "id": "p1-b15",
+      "type": "footnote",
+      "page": 1,
+      "bbox": [
+        79.37,
+        668.14,
+        199.98,
+        675.96
+      ],
+      "text": "[ figure placeholder : pipeline diagram ]",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b11",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b16",
+      "type": "heading",
+      "page": 1,
+      "bbox": [
+        311.81,
+        250.49,
+        385.17,
+        261.66
+      ],
+      "text": "2. Related work",
+      "level": 1,
+      "number": "2",
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "title": "Related work",
+        "_node": {
+          "id": "p1-b16",
+          "number": "2",
+          "title": "Related work",
+          "level": 1,
+          "page": 1,
+          "children": [],
+          "block_ids": [
+            "p1-b17",
+            "p1-b18"
+          ]
+        },
+        "_members": [
+          "p1-b17",
+          "p1-b18"
+        ]
+      }
+    },
+    {
+      "id": "p1-b17",
+      "type": "paragraph",
+      "page": 1,
+      "bbox": [
+        311.81,
+        266.96,
+        549.92,
+        384.17
+      ],
+      "text": "Early systems such as pdftotext exposed the content stream in drawing order, which is correct only for single-column documents produced by well-behaved tools. Poppler and MuPDF later added layout modes that detect columns from the horizontal projection of text lines. Machine-learning approaches, notably LayoutLM and its successors, treat layout analysis as a detection problem and learn block classes from annotated corpora. Commercial systems integrate OCR for scanned inputs but typically hide the confidence of each recognized span.",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b16",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b18",
+      "type": "paragraph",
+      "page": 1,
+      "bbox": [
+        311.81,
+        391.69,
+        549.92,
+        461.27
+      ],
+      "text": "Our work differs in two respects. First, we treat reading order as a function of block geometry only, without a learned model, which keeps the pipeline reproducible across versions. Second, we make uncertainty explicit: regions that cannot be read are reported with their location and a reason rather than filled with a guess.",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b16",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b19",
+      "type": "heading",
+      "page": 1,
+      "bbox": [
+        311.81,
+        469.32,
+        358.48,
+        480.49
+      ],
+      "text": "3. Method",
+      "level": 1,
+      "number": "3",
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "title": "Method",
+        "_node": {
+          "id": "p1-b19",
+          "number": "3",
+          "title": "Method",
+          "level": 1,
+          "page": 1,
+          "children": [],
+          "block_ids": [
+            "p1-b20",
+            "p1-b21",
+            "p1-b22",
+            "p1-b23",
+            "p1-b24",
+            "p1-b25",
+            "p1-b26",
+            "p1-b27",
+            "p2-b01"
+          ]
+        },
+        "_members": [
+          "p1-b20",
+          "p1-b21",
+          "p1-b22",
+          "p1-b23",
+          "p1-b24",
+          "p1-b25",
+          "p1-b26",
+          "p1-b27",
+          "p2-b01"
+        ]
+      }
+    },
+    {
+      "id": "p1-b20",
+      "type": "paragraph",
+      "page": 1,
+      "bbox": [
+        311.81,
+        485.8,
+        549.93,
+        543.48
+      ],
+      "text": "Let a page be a set of blocks B = {b1, ..., bn} with bounding boxes in page coordinates. We first assign each block to a column region using a recursive XY-cut, then order blocks within each region top-to-bottom and regions left-to-right. The reading-order score is",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b19",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b21",
+      "type": "equation",
+      "page": 1,
+      "bbox": [
+        368.5,
+        556.08,
+        520.45,
+        566.69
+      ],
+      "text": "R = Σ_i  w_i · log p(b_i | b_<i)      (1)",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b19",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b22",
+      "type": "paragraph",
+      "page": 1,
+      "bbox": [
+        311.81,
+        576.51,
+        549.92,
+        646.09
+      ],
+      "text": "where w_i is a salience weight and p is a position prior. For tables, we extract the ruling lines, intersect them to form cells, and merge cells whose shared border is missing. Greek letters and subscripts are recovered from font metadata: the temperature parameter θ and the learning rate η{sub}t{/sub} are emitted as Unicode; the activation is",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b19",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b23",
+      "type": "equation",
+      "page": 1,
+      "bbox": [
+        311.81,
+        647.95,
+        549.93,
+        669.9
+      ],
+      "text": "σ(x) = 1 / (1 + e{sup}−x{/sup}), with α = 0.01 and ΔG = −12.4 kJ mol{sup}−1{/sup}.",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b19",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b24",
+      "type": "table_caption",
+      "page": 1,
+      "bbox": [
+        311.81,
+        677.95,
+        572.59,
+        689.12
+      ],
+      "text": "Table 1. Comparison with baselines on the DocBench-120 test set.",
+      "level": 0,
+      "number": "1",
+      "parent": "p1-b19",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "type": "table",
+        "label": "Table 1",
+        "caption": "Comparison with baselines on the DocBench-120 test set.",
+        "caption_prefix": "Table 1.",
+        "table_block": "p1-b25",
+        "table_number": "1"
+      }
+    },
+    {
+      "id": "p1-b25",
+      "type": "table",
+      "page": 1,
+      "bbox": [
+        308.98,
+        693.92,
+        552.76,
+        790.3
+      ],
+      "text": "Method Accuracy (%) Text F1 Table cell pdftotext -layout 0.871 0.612 Poppler layout 0.893 0.704 LayoutLM-base 0.948 0.907 Ours 0.982 0.941",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b19",
+      "confidence": 1.0,
+      "flags": [
+        "structured"
+      ],
+      "meta": {
+        "table_index": 0,
+        "row_count": 6,
+        "col_count": 3,
+        "header_rows": 2,
+        "markdown": "| Method | Accuracy (%) |  |\n|---|---|---|\n|  | Text F1 | Table cell |\n| pdftotext -layout | 0.871 | 0.612 |\n| Poppler layout | 0.893 | 0.704 |\n| LayoutLM-base | 0.948 | 0.907 |\n| Ours | 0.982 | 0.941 |",
+        "html": "<table>\n <tr>\n  <th>Method</th>\n  <th>Accuracy (%)</th>\n </tr>\n <tr>\n  <th></th>\n  <th>Text F1</th>\n  <th>Table cell</th>\n </tr>\n <tr>\n  <td>pdftotext -layout</td>\n  <td>0.871</td>\n  <td>0.612</td>\n </tr>\n <tr>\n  <td>Poppler layout</td>\n  <td>0.893</td>\n  <td>0.704</td>\n </tr>\n <tr>\n  <td>LayoutLM-base</td>\n  <td>0.948</td>\n  <td>0.907</td>\n </tr>\n <tr>\n  <td>Ours</td>\n  <td>0.982</td>\n  <td>0.941</td>\n </tr>\n</table>"
+      }
+    },
+    {
+      "id": "p1-b26",
+      "type": "footnote",
+      "page": 1,
+      "bbox": [
+        311.81,
+        793.43,
+        510.62,
+        801.25
+      ],
+      "text": "Best results in bold. All numbers are averages over three seeds.",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b19",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p1-b27",
+      "type": "footer",
+      "page": 1,
+      "bbox": [
+        45.35,
+        808.7,
+        549.92,
+        817.64
+      ],
+      "text": "Preprint submitted to Journal of Reproducible Science 12 (2026) 1–14 1 Doe et al.",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b19",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p2-b01",
+      "type": "header",
+      "page": 2,
+      "bbox": [
+        45.35,
+        29.48,
+        549.93,
+        37.86
+      ],
+      "text": "Journal of Reproducible Science 12 (2026) 1–14 Attention-free parsing of scientific PDFs",
+      "level": 0,
+      "number": null,
+      "parent": "p1-b19",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p2-b02",
+      "type": "heading",
+      "page": 2,
+      "bbox": [
+        45.35,
+        63.4,
+        116.49,
+        74.57
+      ],
+      "text": "4. Experiments",
+      "level": 1,
+      "number": "4",
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "title": "Experiments",
+        "_node": {
+          "id": "p2-b02",
+          "number": "4",
+          "title": "Experiments",
+          "level": 1,
+          "page": 2,
+          "children": [],
+          "block_ids": [
+            "p2-b03"
+          ]
+        },
+        "_members": [
+          "p2-b03"
+        ],
+        "_children": [
+          {
+            "id": "p2-b04",
+            "number": "4.1",
+            "title": "Ablation",
+            "level": 2,
+            "page": 2,
+            "children": [],
+            "block_ids": [
+              "p2-b05",
+              "p2-b06",
+              "p2-b07",
+              "p2-b08"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "p2-b03",
+      "type": "paragraph",
+      "page": 2,
+      "bbox": [
+        45.35,
+        79.88,
+        283.46,
+        185.18
+      ],
+      "text": "We evaluate on DocBench-120, a collection of 120 papers from six publishers, of which 18 are scanned images without a text layer. Each paper was annotated by two students with block boundaries, reading order and table structure; disagreements were resolved by a third annotator. Table 2 reports the per-document-type breakdown. The runtime of the full pipeline is 1.8 s per page on a single CPU core, compared with 4.1 s for the strongest baseline, a 2.3× speed-up.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p2-b04",
+      "type": "heading",
+      "page": 2,
+      "bbox": [
+        45.35,
+        193.23,
+        104.81,
+        204.4
+      ],
+      "text": "4.1. Ablation",
+      "level": 2,
+      "number": "4.1",
+      "parent": "p2-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "title": "Ablation",
+        "_node": {
+          "id": "p2-b04",
+          "number": "4.1",
+          "title": "Ablation",
+          "level": 2,
+          "page": 2,
+          "children": [],
+          "block_ids": [
+            "p2-b05",
+            "p2-b06",
+            "p2-b07",
+            "p2-b08"
+          ]
+        },
+        "_members": [
+          "p2-b05",
+          "p2-b06",
+          "p2-b07",
+          "p2-b08"
+        ]
+      }
+    },
+    {
+      "id": "p2-b05",
+      "type": "paragraph",
+      "page": 2,
+      "bbox": [
+        45.35,
+        209.71,
+        283.46,
+        267.38
+      ],
+      "text": "Removing the column detection lowers text F1 from 0.982 to 0.791, confirming that ordering errors dominate the error budget. Removing the table merge step lowers cell accuracy from 0.941 to 0.863. Both components are therefore necessary; neither alone suffices.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b04",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p2-b06",
+      "type": "table_caption",
+      "page": 2,
+      "bbox": [
+        45.35,
+        276.34,
+        300.96,
+        285.83
+      ],
+      "text": "Table 2. Results by document type (continues on the next page).",
+      "level": 0,
+      "number": "2",
+      "parent": "p2-b04",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "type": "table",
+        "label": "Table 2",
+        "caption": "Results by document type (continues on the next page).",
+        "caption_prefix": "Table 2."
+      }
+    },
+    {
+      "id": "p2-b07",
+      "type": "table",
+      "page": 2,
+      "bbox": [
+        42.52,
+        291.4,
+        286.3,
+        355.18
+      ],
+      "text": "Document type Count Text F1 Born-digital, 1 column 31 0.991 Born-digital, 2 columns 48 0.985 Born-digital, ≥3 columns 23 0.962",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b04",
+      "confidence": 1.0,
+      "flags": [
+        "structured"
+      ],
+      "meta": {
+        "table_index": 1,
+        "row_count": 4,
+        "col_count": 3,
+        "header_rows": 1,
+        "markdown": "| Document type | Count | Text F1 |\n|---|---|---|\n| Born-digital, 1 column | 31 | 0.991 |\n| Born-digital, 2 columns | 48 | 0.985 |\n| Born-digital, ≥3 columns | 23 | 0.962 |",
+        "html": "<table>\n <tr>\n  <th>Document type</th>\n  <th>Count</th>\n  <th>Text F1</th>\n </tr>\n <tr>\n  <td>Born-digital, 1 column</td>\n  <td>31</td>\n  <td>0.991</td>\n </tr>\n <tr>\n  <td>Born-digital, 2 columns</td>\n  <td>48</td>\n  <td>0.985</td>\n </tr>\n <tr>\n  <td>Born-digital, ≥3 columns</td>\n  <td>23</td>\n  <td>0.962</td>\n </tr>\n</table>"
+      }
+    },
+    {
+      "id": "p2-b08",
+      "type": "table_caption",
+      "page": 2,
+      "bbox": [
+        45.35,
+        358.75,
+        105.65,
+        366.56
+      ],
+      "text": "Table 2 (continued)",
+      "level": 0,
+      "number": "2",
+      "parent": "p2-b04",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "type": "table",
+        "label": "Table 2",
+        "caption": "(continued)",
+        "caption_prefix": "Table 2",
+        "table_block": "p2-b07",
+        "table_number": "2"
+      }
+    },
+    {
+      "id": "p2-b09",
+      "type": "heading",
+      "page": 2,
+      "bbox": [
+        311.81,
+        63.4,
+        376.28,
+        74.57
+      ],
+      "text": "5. Discussion",
+      "level": 1,
+      "number": "5",
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "title": "Discussion",
+        "_node": {
+          "id": "p2-b09",
+          "number": "5",
+          "title": "Discussion",
+          "level": 1,
+          "page": 2,
+          "children": [],
+          "block_ids": [
+            "p2-b10",
+            "p2-b11"
+          ]
+        },
+        "_members": [
+          "p2-b10",
+          "p2-b11"
+        ]
+      }
+    },
+    {
+      "id": "p2-b10",
+      "type": "paragraph",
+      "page": 2,
+      "bbox": [
+        311.81,
+        79.88,
+        549.92,
+        185.18
+      ],
+      "text": "The remaining errors concentrate in three areas: equations set with custom math fonts whose ToUnicode map is missing, tables whose ruling lines are drawn as very light gray and fall below the threshold, and running headers that change between pages. We consider the first the most important: a missing ToUnicode map makes an equation unreadable regardless of the layout model, and the only honest output is to report the region as unreadable with its bounding box.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b09",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p2-b11",
+      "type": "paragraph",
+      "page": 2,
+      "bbox": [
+        311.81,
+        192.7,
+        549.92,
+        274.18
+      ],
+      "text": "Limitations. Our evaluation covers English only. Scripts without spaces and vertical writing need a different line-segmentation stage. The pipeline also does not currently interpret chart data; figures are reported as blocks with their captions and a placeholder, which is sufficient for question answering about the caption but not about the plotted values.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b09",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p2-b12",
+      "type": "heading",
+      "page": 2,
+      "bbox": [
+        311.81,
+        282.23,
+        377.38,
+        293.4
+      ],
+      "text": "6. Conclusion",
+      "level": 1,
+      "number": "6",
+      "parent": "p1-b02",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "title": "Conclusion",
+        "_node": {
+          "id": "p2-b12",
+          "number": "6",
+          "title": "Conclusion",
+          "level": 1,
+          "page": 2,
+          "children": [],
+          "block_ids": [
+            "p2-b13",
+            "p2-b14",
+            "p2-b15",
+            "p2-b16",
+            "p3-b01",
+            "p3-b02",
+            "p3-b03",
+            "p3-b04",
+            "p3-b05",
+            "p3-b06",
+            "p3-b07",
+            "p3-b08",
+            "p3-b09",
+            "p3-b10",
+            "p3-b11"
+          ]
+        },
+        "_members": [
+          "p2-b13",
+          "p2-b14",
+          "p2-b15",
+          "p2-b16",
+          "p3-b01",
+          "p3-b02",
+          "p3-b03",
+          "p3-b04",
+          "p3-b05",
+          "p3-b06",
+          "p3-b07",
+          "p3-b08",
+          "p3-b09",
+          "p3-b10",
+          "p3-b11"
+        ]
+      }
+    },
+    {
+      "id": "p2-b13",
+      "type": "paragraph",
+      "page": 2,
+      "bbox": [
+        311.81,
+        298.71,
+        549.92,
+        332.58
+      ],
+      "text": "A layout-first pipeline with explicit grounding turns a PDF into a structure that downstream agents can cite. We release the code and the annotation guidelines.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p2-b14",
+      "type": "footnote",
+      "page": 2,
+      "bbox": [
+        311.81,
+        717.47,
+        542.9,
+        734.35
+      ],
+      "text": "1 A preliminary version of this work appeared in the workshop proceedings of DocEng 2025.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p2-b15",
+      "type": "footnote",
+      "page": 2,
+      "bbox": [
+        311.81,
+        757.15,
+        450.42,
+        764.97
+      ],
+      "text": "* Corresponding author: j.doe@example.edu",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p2-b16",
+      "type": "footer",
+      "page": 2,
+      "bbox": [
+        45.35,
+        808.7,
+        549.92,
+        817.64
+      ],
+      "text": "Preprint submitted to Journal of Reproducible Science 12 (2026) 1–14 2 Doe et al.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p3-b01",
+      "type": "header",
+      "page": 3,
+      "bbox": [
+        45.35,
+        29.48,
+        549.93,
+        37.86
+      ],
+      "text": "Journal of Reproducible Science 12 (2026) 1–14 Attention-free parsing of scientific PDFs",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p3-b02",
+      "type": "table_caption",
+      "page": 3,
+      "bbox": [
+        45.35,
+        63.4,
+        137.03,
+        74.57
+      ],
+      "text": "Table 2 (continued)",
+      "level": 0,
+      "number": "2",
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {
+        "type": "table",
+        "label": "Table 2",
+        "caption": "(continued)",
+        "caption_prefix": "Table 2",
+        "table_block": "p3-b03",
+        "table_number": "2"
+      }
+    },
+    {
+      "id": "p3-b03",
+      "type": "table",
+      "page": 3,
+      "bbox": [
+        42.52,
+        79.37,
+        286.3,
+        127.56
+      ],
+      "text": "Document type Count Text F1 Scanned, OCR A 10 0.938 Scanned, OCR B 8 0.911",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [
+        "structured"
+      ],
+      "meta": {
+        "table_index": 2,
+        "row_count": 3,
+        "col_count": 3,
+        "header_rows": 1,
+        "markdown": "| Document type | Count | Text F1 |\n|---|---|---|\n| Scanned, OCR A | 10 | 0.938 |\n| Scanned, OCR B | 8 | 0.911 |",
+        "html": "<table>\n <tr>\n  <th>Document type</th>\n  <th>Count</th>\n  <th>Text F1</th>\n </tr>\n <tr>\n  <td>Scanned, OCR A</td>\n  <td>10</td>\n  <td>0.938</td>\n </tr>\n <tr>\n  <td>Scanned, OCR B</td>\n  <td>8</td>\n  <td>0.911</td>\n </tr>\n</table>"
+      }
+    },
+    {
+      "id": "p3-b04",
+      "type": "small_text",
+      "page": 3,
+      "bbox": [
+        45.35,
+        131.12,
+        231.7,
+        138.93
+      ],
+      "text": "Scanned documents were processed with the OCR fallback.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p3-b05",
+      "type": "reference",
+      "page": 3,
+      "bbox": [
+        45.35,
+        168.28,
+        99.26,
+        179.45
+      ],
+      "text": "References",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p3-b06",
+      "type": "reference",
+      "page": 3,
+      "bbox": [
+        45.35,
+        184.8,
+        469.54,
+        193.74
+      ],
+      "text": "[1] J. Doe, K. Lee, Block-level reading order for multi-column documents, in: Proceedings of ICDAR, 2024, pp. 112–120.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p3-b07",
+      "type": "reference",
+      "page": 3,
+      "bbox": [
+        45.35,
+        197.84,
+        540.28,
+        206.78
+      ],
+      "text": "[2] Y. Xu, M. Brown, S. Petrov, LayoutLM: Pre-training of text and layout for document image understanding, in: KDD, 2020, pp. 1192–1200.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p3-b08",
+      "type": "reference",
+      "page": 3,
+      "bbox": [
+        45.35,
+        210.88,
+        548.25,
+        219.82
+      ],
+      "text": "[3] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. Gomez, Ł. Kaiser, I. Polosukhin, Attention is all you need, in: NeurIPS, 2017.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p3-b09",
+      "type": "reference",
+      "page": 3,
+      "bbox": [
+        45.35,
+        223.92,
+        528.2,
+        243.63
+      ],
+      "text": "[4] A. Krizhevsky, I. Sutskever, G. Hinton, ImageNet classification with deep convolutional neural networks, Commun. ACM 60 (6) (2017) 84–90.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p3-b10",
+      "type": "reference",
+      "page": 3,
+      "bbox": [
+        45.35,
+        247.73,
+        498.88,
+        256.67
+      ],
+      "text": "[5] A. Cojocaru, E. B. Smith, D. R. Jones, On the reproducibility of PDF extraction benchmarks, J. Reprod. Sci. 11 (2025) 45–61.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    },
+    {
+      "id": "p3-b11",
+      "type": "footer",
+      "page": 3,
+      "bbox": [
+        45.35,
+        808.7,
+        549.92,
+        817.64
+      ],
+      "text": "Preprint submitted to Journal of Reproducible Science 12 (2026) 1–14 3 Doe et al.",
+      "level": 0,
+      "number": null,
+      "parent": "p2-b12",
+      "confidence": 1.0,
+      "flags": [],
+      "meta": {}
+    }
+  ],
+  "tables": [
+    {
+      "id": "p1-b25",
+      "number": "1",
+      "page": 1,
+      "bbox": [
+        308.98,
+        693.92,
+        552.76,
+        790.3
+      ],
+      "caption": "Comparison with baselines on the DocBench-120 test set.",
+      "caption_block": "p1-b24",
+      "row_count": 6,
+      "col_count": 3,
+      "header_rows": 2,
+      "grid": [
+        [
+          "Method",
+          "Accuracy (%)",
+          null
+        ],
+        [
+          "",
+          "Text F1",
+          "Table cell"
+        ],
+        [
+          "pdftotext -layout",
+          "0.871",
+          "0.612"
+        ],
+        [
+          "Poppler layout",
+          "0.893",
+          "0.704"
+        ],
+        [
+          "LayoutLM-base",
+          "0.948",
+          "0.907"
+        ],
+        [
+          "Ours",
+          "0.982",
+          "0.941"
+        ]
+      ],
+      "cells": [
+        {
+          "text": "Method",
+          "bbox": [
+            308.98,
+            693.92,
+            405.36,
+            710.93
+          ],
+          "row": 0,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Accuracy (%)",
+          "bbox": [
+            405.36,
+            693.92,
+            552.76,
+            710.93
+          ],
+          "row": 0,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "",
+          "bbox": [
+            308.98,
+            710.93,
+            405.36,
+            727.94
+          ],
+          "row": 1,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Text F1",
+          "bbox": [
+            405.36,
+            710.93,
+            479.05,
+            727.94
+          ],
+          "row": 1,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Table cell",
+          "bbox": [
+            479.05,
+            710.93,
+            552.76,
+            727.94
+          ],
+          "row": 1,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "pdftotext -layout",
+          "bbox": [
+            308.98,
+            727.94,
+            405.36,
+            743.53
+          ],
+          "row": 2,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.871",
+          "bbox": [
+            405.36,
+            727.94,
+            479.05,
+            743.53
+          ],
+          "row": 2,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.612",
+          "bbox": [
+            479.05,
+            727.94,
+            552.76,
+            743.53
+          ],
+          "row": 2,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Poppler layout",
+          "bbox": [
+            308.98,
+            743.53,
+            405.36,
+            759.12
+          ],
+          "row": 3,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.893",
+          "bbox": [
+            405.36,
+            743.53,
+            479.05,
+            759.12
+          ],
+          "row": 3,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.704",
+          "bbox": [
+            479.05,
+            743.53,
+            552.76,
+            759.12
+          ],
+          "row": 3,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "LayoutLM-base",
+          "bbox": [
+            308.98,
+            759.12,
+            405.36,
+            774.71
+          ],
+          "row": 4,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.948",
+          "bbox": [
+            405.36,
+            759.12,
+            479.05,
+            774.71
+          ],
+          "row": 4,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.907",
+          "bbox": [
+            479.05,
+            759.12,
+            552.76,
+            774.71
+          ],
+          "row": 4,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Ours",
+          "bbox": [
+            308.98,
+            774.71,
+            405.36,
+            790.3
+          ],
+          "row": 5,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.982",
+          "bbox": [
+            405.36,
+            774.71,
+            479.05,
+            790.3
+          ],
+          "row": 5,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.941",
+          "bbox": [
+            479.05,
+            774.71,
+            552.76,
+            790.3
+          ],
+          "row": 5,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        }
+      ],
+      "markdown": "| Method | Accuracy (%) |  |\n|---|---|---|\n|  | Text F1 | Table cell |\n| pdftotext -layout | 0.871 | 0.612 |\n| Poppler layout | 0.893 | 0.704 |\n| LayoutLM-base | 0.948 | 0.907 |\n| Ours | 0.982 | 0.941 |",
+      "html": "<table>\n <tr>\n  <th>Method</th>\n  <th>Accuracy (%)</th>\n </tr>\n <tr>\n  <th></th>\n  <th>Text F1</th>\n  <th>Table cell</th>\n </tr>\n <tr>\n  <td>pdftotext -layout</td>\n  <td>0.871</td>\n  <td>0.612</td>\n </tr>\n <tr>\n  <td>Poppler layout</td>\n  <td>0.893</td>\n  <td>0.704</td>\n </tr>\n <tr>\n  <td>LayoutLM-base</td>\n  <td>0.948</td>\n  <td>0.907</td>\n </tr>\n <tr>\n  <td>Ours</td>\n  <td>0.982</td>\n  <td>0.941</td>\n </tr>\n</table>",
+      "continued_from": null,
+      "continued_by": 1,
+      "extraction": "pymupdf.find_tables",
+      "flags": []
+    },
+    {
+      "id": "p2-b07",
+      "number": "2",
+      "page": 2,
+      "bbox": [
+        42.52,
+        291.4,
+        286.3,
+        355.18
+      ],
+      "caption": "(continued)",
+      "caption_block": "p2-b08",
+      "row_count": 4,
+      "col_count": 3,
+      "header_rows": 1,
+      "grid": [
+        [
+          "Document type",
+          "Count",
+          "Text F1"
+        ],
+        [
+          "Born-digital, 1 column",
+          "31",
+          "0.991"
+        ],
+        [
+          "Born-digital, 2 columns",
+          "48",
+          "0.985"
+        ],
+        [
+          "Born-digital, ≥3 columns",
+          "23",
+          "0.962"
+        ]
+      ],
+      "cells": [
+        {
+          "text": "Document type",
+          "bbox": [
+            42.52,
+            291.4,
+            155.91,
+            308.41
+          ],
+          "row": 0,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Count",
+          "bbox": [
+            155.91,
+            291.4,
+            221.11,
+            308.41
+          ],
+          "row": 0,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Text F1",
+          "bbox": [
+            221.11,
+            291.4,
+            286.3,
+            308.41
+          ],
+          "row": 0,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Born-digital, 1 column",
+          "bbox": [
+            42.52,
+            308.41,
+            155.91,
+            324.0
+          ],
+          "row": 1,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "31",
+          "bbox": [
+            155.91,
+            308.41,
+            221.11,
+            324.0
+          ],
+          "row": 1,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.991",
+          "bbox": [
+            221.11,
+            308.41,
+            286.3,
+            324.0
+          ],
+          "row": 1,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Born-digital, 2 columns",
+          "bbox": [
+            42.52,
+            324.0,
+            155.91,
+            339.59
+          ],
+          "row": 2,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "48",
+          "bbox": [
+            155.91,
+            324.0,
+            221.11,
+            339.59
+          ],
+          "row": 2,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.985",
+          "bbox": [
+            221.11,
+            324.0,
+            286.3,
+            339.59
+          ],
+          "row": 2,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Born-digital, ≥3 columns",
+          "bbox": [
+            42.52,
+            339.59,
+            155.91,
+            355.18
+          ],
+          "row": 3,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "23",
+          "bbox": [
+            155.91,
+            339.59,
+            221.11,
+            355.18
+          ],
+          "row": 3,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.962",
+          "bbox": [
+            221.11,
+            339.59,
+            286.3,
+            355.18
+          ],
+          "row": 3,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        }
+      ],
+      "markdown": "| Document type | Count | Text F1 |\n|---|---|---|\n| Born-digital, 1 column | 31 | 0.991 |\n| Born-digital, 2 columns | 48 | 0.985 |\n| Born-digital, ≥3 columns | 23 | 0.962 |",
+      "html": "<table>\n <tr>\n  <th>Document type</th>\n  <th>Count</th>\n  <th>Text F1</th>\n </tr>\n <tr>\n  <td>Born-digital, 1 column</td>\n  <td>31</td>\n  <td>0.991</td>\n </tr>\n <tr>\n  <td>Born-digital, 2 columns</td>\n  <td>48</td>\n  <td>0.985</td>\n </tr>\n <tr>\n  <td>Born-digital, ≥3 columns</td>\n  <td>23</td>\n  <td>0.962</td>\n </tr>\n</table>",
+      "continued_from": 0,
+      "continued_by": 2,
+      "extraction": "pymupdf.find_tables",
+      "flags": []
+    },
+    {
+      "id": "p3-b03",
+      "number": "2",
+      "page": 3,
+      "bbox": [
+        42.52,
+        79.37,
+        286.3,
+        127.56
+      ],
+      "caption": "(continued)",
+      "caption_block": "p3-b02",
+      "row_count": 3,
+      "col_count": 3,
+      "header_rows": 1,
+      "grid": [
+        [
+          "Document type",
+          "Count",
+          "Text F1"
+        ],
+        [
+          "Scanned, OCR A",
+          "10",
+          "0.938"
+        ],
+        [
+          "Scanned, OCR B",
+          "8",
+          "0.911"
+        ]
+      ],
+      "cells": [
+        {
+          "text": "Document type",
+          "bbox": [
+            42.52,
+            79.37,
+            155.91,
+            96.38
+          ],
+          "row": 0,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Count",
+          "bbox": [
+            155.91,
+            79.37,
+            221.11,
+            96.38
+          ],
+          "row": 0,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Text F1",
+          "bbox": [
+            221.11,
+            79.37,
+            286.3,
+            96.38
+          ],
+          "row": 0,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Scanned, OCR A",
+          "bbox": [
+            42.52,
+            96.38,
+            155.91,
+            111.97
+          ],
+          "row": 1,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "10",
+          "bbox": [
+            155.91,
+            96.38,
+            221.11,
+            111.97
+          ],
+          "row": 1,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.938",
+          "bbox": [
+            221.11,
+            96.38,
+            286.3,
+            111.97
+          ],
+          "row": 1,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "Scanned, OCR B",
+          "bbox": [
+            42.52,
+            111.97,
+            155.91,
+            127.56
+          ],
+          "row": 2,
+          "col": 0,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "8",
+          "bbox": [
+            155.91,
+            111.97,
+            221.11,
+            127.56
+          ],
+          "row": 2,
+          "col": 1,
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "text": "0.911",
+          "bbox": [
+            221.11,
+            111.97,
+            286.3,
+            127.56
+          ],
+          "row": 2,
+          "col": 2,
+          "rowspan": 1,
+          "colspan": 1
+        }
+      ],
+      "markdown": "| Document type | Count | Text F1 |\n|---|---|---|\n| Scanned, OCR A | 10 | 0.938 |\n| Scanned, OCR B | 8 | 0.911 |",
+      "html": "<table>\n <tr>\n  <th>Document type</th>\n  <th>Count</th>\n  <th>Text F1</th>\n </tr>\n <tr>\n  <td>Scanned, OCR A</td>\n  <td>10</td>\n  <td>0.938</td>\n </tr>\n <tr>\n  <td>Scanned, OCR B</td>\n  <td>8</td>\n  <td>0.911</td>\n </tr>\n</table>",
+      "continued_from": 1,
+      "continued_by": null,
+      "extraction": "pymupdf.find_tables",
+      "flags": []
+    }
+  ],
+  "figures": [
+    {
+      "id": "p1-b14",
+      "number": "1",
+      "page": 1,
+      "bbox": [
+        45.35,
+        611.96,
+        447.87,
+        621.45
+      ],
+      "caption": "Overview of the pipeline. Pages are segmented into blocks, blocks are classified, then ordered.",
+      "figure_region": null,
+      "note": "figure content is reported as a located block with its caption; plotted values are not interpreted"
+    }
+  ],
+  "equations": [
+    {
+      "id": "p1-b21",
+      "page": 1,
+      "bbox": [
+        368.5,
+        556.08,
+        520.45,
+        566.69
+      ],
+      "text": "R = Σ_i  w_i · log p(b_i | b_<i)      (1)",
+      "tag": "1"
+    },
+    {
+      "id": "p1-b23",
+      "page": 1,
+      "bbox": [
+        311.81,
+        647.95,
+        549.93,
+        669.9
+      ],
+      "text": "σ(x) = 1 / (1 + e{sup}−x{/sup}), with α = 0.01 and ΔG = −12.4 kJ mol{sup}−1{/sup}.",
+      "tag": null
+    }
+  ],
+  "headers_footers": [
+    {
+      "id": "p1-b01",
+      "page": 1,
+      "type": "header",
+      "text": "Journal of Reproducible Science 12 (2026) 1–14 Attention-free parsing of scientific PDFs"
+    },
+    {
+      "id": "p1-b27",
+      "page": 1,
+      "type": "footer",
+      "text": "Preprint submitted to Journal of Reproducible Science 12 (2026) 1–14 1 Doe et al."
+    },
+    {
+      "id": "p2-b01",
+      "page": 2,
+      "type": "header",
+      "text": "Journal of Reproducible Science 12 (2026) 1–14 Attention-free parsing of scientific PDFs"
+    },
+    {
+      "id": "p2-b16",
+      "page": 2,
+      "type": "footer",
+      "text": "Preprint submitted to Journal of Reproducible Science 12 (2026) 1–14 2 Doe et al."
+    },
+    {
+      "id": "p3-b01",
+      "page": 3,
+      "type": "header",
+      "text": "Journal of Reproducible Science 12 (2026) 1–14 Attention-free parsing of scientific PDFs"
+    },
+    {
+      "id": "p3-b11",
+      "page": 3,
+      "type": "footer",
+      "text": "Preprint submitted to Journal of Reproducible Science 12 (2026) 1–14 3 Doe et al."
+    }
+  ],
+  "footnotes": [
+    {
+      "id": "p1-b15",
+      "page": 1,
+      "text": "[ figure placeholder : pipeline diagram ]",
+      "bbox": [
+        79.37,
+        668.14,
+        199.98,
+        675.96
+      ]
+    },
+    {
+      "id": "p1-b26",
+      "page": 1,
+      "text": "Best results in bold. All numbers are averages over three seeds.",
+      "bbox": [
+        311.81,
+        793.43,
+        510.62,
+        801.25
+      ]
+    },
+    {
+      "id": "p2-b14",
+      "page": 2,
+      "text": "1 A preliminary version of this work appeared in the workshop proceedings of DocEng 2025.",
+      "bbox": [
+        311.81,
+        717.47,
+        542.9,
+        734.35
+      ]
+    },
+    {
+      "id": "p2-b15",
+      "page": 2,
+      "text": "* Corresponding author: j.doe@example.edu",
+      "bbox": [
+        311.81,
+        757.15,
+        450.42,
+        764.97
+      ]
+    }
+  ],
+  "references": [
+    {
+      "id": "p3-b05",
+      "page": 3,
+      "text": "References"
+    },
+    {
+      "id": "p3-b06",
+      "page": 3,
+      "text": "[1] J. Doe, K. Lee, Block-level reading order for multi-column documents, in: Proceedings of ICDAR, 2024, pp. 112–120."
+    },
+    {
+      "id": "p3-b07",
+      "page": 3,
+      "text": "[2] Y. Xu, M. Brown, S. Petrov, LayoutLM: Pre-training of text and layout for document image understanding, in: KDD, 2020, pp. 1192–1200."
+    },
+    {
+      "id": "p3-b08",
+      "page": 3,
+      "text": "[3] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. Gomez, Ł. Kaiser, I. Polosukhin, Attention is all you need, in: NeurIPS, 2017."
+    },
+    {
+      "id": "p3-b09",
+      "page": 3,
+      "text": "[4] A. Krizhevsky, I. Sutskever, G. Hinton, ImageNet classification with deep convolutional neural networks, Commun. ACM 60 (6) (2017) 84–90."
+    },
+    {
+      "id": "p3-b10",
+      "page": 3,
+      "text": "[5] A. Cojocaru, E. B. Smith, D. R. Jones, On the reproducibility of PDF extraction benchmarks, J. Reprod. Sci. 11 (2025) 45–61."
+    }
+  ],
+  "answers": [
+    {
+      "question": "What is the table cell accuracy of the proposed method?",
+      "answer": "On a benchmark of 120 papers, the method reaches a word-level F1 of 0.982 and a table cell accuracy of 0.941, outperforming the strongest baseline by 3.4 points.",
+      "status": "found",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "id": "p1-b07",
+          "page": 1,
+          "type": "abstract",
+          "bbox": [
+            45.35,
+            159.55,
+            549.92,
+            204.76
+          ],
+          "text": "A B S T R A C T We present a layout-first pipeline that converts scientific PDFs into structured, page-grounded documents. Instead of relying on a single text-extraction pass, the pipeline segments each page into blocks, classifies them, orders them by a column-aware reading-order model, and reconstructs tables and equations as structured objects. On a benchmark of 120 papers, the method reaches a word-level F1 of 0.982 and a table cell accuracy of 0.941, outperforming the strongest baseline by 3.4 points.",
+          "score": 12.676,
+          "contains_answer": true
+        },
+        {
+          "id": "p1-b25",
+          "page": 1,
+          "type": "table",
+          "bbox": [
+            308.98,
+            693.92,
+            552.76,
+            790.3
+          ],
+          "text": "Method Accuracy (%) Text F1 Table cell pdftotext -layout 0.871 0.612 Poppler layout 0.893 0.704 LayoutLM-base 0.948 0.907 Ours 0.982 0.941",
+          "score": 10.676,
+          "contains_answer": false
+        },
+        {
+          "id": "p1-b25",
+          "page": 1,
+          "type": "table",
+          "bbox": [
+            308.98,
+            693.92,
+            552.76,
+            790.3
+          ],
+          "text": "| Method | Accuracy (%) |  |\n|---|---|---|\n|  | Text F1 | Table cell |\n| pdftotext -layout | 0.871 | 0.612 |\n| Poppler layout | 0.893 | 0.704 |\n| LayoutLM-base | 0.948 | 0.907 |\n| Ours | 0.982 | 0.941 |",
+          "score": 10.676,
+          "contains_answer": false
+        }
+      ],
+      "answer_block": "p1-b07",
+      "answer_sentence_score": 1.376,
+      "note": "Answer is the sentence in the top-ranked grounded blocks that best matches the question; verify against the cited page/bbox before use."
+    },
+    {
+      "question": "How many scanned papers are in DocBench-120?",
+      "answer": "We evaluate on DocBench-120, a collection of 120 papers from six publishers, of which 18 are scanned images without a text layer.",
+      "status": "found",
+      "confidence": "high",
+      "evidence": [
+        {
+          "id": "p2-b03",
+          "page": 2,
+          "type": "paragraph",
+          "bbox": [
+            45.35,
+            79.88,
+            283.46,
+            185.18
+          ],
+          "text": "We evaluate on DocBench-120, a collection of 120 papers from six publishers, of which 18 are scanned images without a text layer. Each paper was annotated by two students with block boundaries, reading order and table structure; disagreements were resolved by a third annotator. Table 2 reports the per-document-type breakdown. The runtime of the full pipeline is 1.8 s per page on a single CPU core, compared with 4.1 s for the strongest baseline, a 2.3× speed-up.",
+          "score": 9.232,
+          "contains_answer": true
+        },
+        {
+          "id": "p3-b03",
+          "page": 3,
+          "type": "table",
+          "bbox": [
+            42.52,
+            79.37,
+            286.3,
+            127.56
+          ],
+          "text": "Document type Count Text F1 Scanned, OCR A 10 0.938 Scanned, OCR B 8 0.911",
+          "score": 3.812,
+          "contains_answer": false
+        },
+        {
+          "id": "p3-b03",
+          "page": 3,
+          "type": "table",
+          "bbox": [
+            42.52,
+            79.37,
+            286.3,
+            127.56
+          ],
+          "text": "| Document type | Count | Text F1 |\n|---|---|---|\n| Scanned, OCR A | 10 | 0.938 |\n| Scanned, OCR B | 8 | 0.911 |",
+          "score": 3.812,
+          "contains_answer": false
+        }
+      ],
+      "answer_block": "p2-b03",
+      "answer_sentence_score": 0.718,
+      "note": "Answer is the sentence in the top-ranked grounded blocks that best matches the question; verify against the cited page/bbox before use."
+    },
+    {
+      "question": "What is the running time per page?",
+      "answer": "The runtime of the full pipeline is 1.8 s per page on a single CPU core, compared with 4.1 s for the strongest baseline, a 2.3× speed-up.",
+      "status": "found",
+      "confidence": "high",
+      "evidence": [
+        {
+          "id": "p2-b03",
+          "page": 2,
+          "type": "paragraph",
+          "bbox": [
+            45.35,
+            79.88,
+            283.46,
+            185.18
+          ],
+          "text": "We evaluate on DocBench-120, a collection of 120 papers from six publishers, of which 18 are scanned images without a text layer. Each paper was annotated by two students with block boundaries, reading order and table structure; disagreements were resolved by a third annotator. Table 2 reports the per-document-type breakdown. The runtime of the full pipeline is 1.8 s per page on a single CPU core, compared with 4.1 s for the strongest baseline, a 2.3× speed-up.",
+          "score": 5.392,
+          "contains_answer": true
+        },
+        {
+          "id": "p1-b10",
+          "page": 1,
+          "type": "paragraph",
+          "bbox": [
+            45.35,
+            379.79,
+            283.46,
+            496.99
+          ],
+          "text": "Naive extraction that sorts glyphs by their vertical position interleaves the two columns of a double-column page, producing sentences that read \"the model was trained on 12,431 pairs of images and achieves state-of-the-art results\" out of two unrelated paragraphs. Downstream translation and question answering then inherit these errors silently. This paper argues that the ordering problem must be solved at the level of layout blocks rather than individual characters, and that every extracted span should carry a pointer back to the page region it came from.",
+          "score": 3.58,
+          "contains_answer": false
+        },
+        {
+          "id": "p1-b20",
+          "page": 1,
+          "type": "paragraph",
+          "bbox": [
+            311.81,
+            485.8,
+            549.93,
+            543.48
+          ],
+          "text": "Let a page be a set of blocks B = {b1, ..., bn} with bounding boxes in page coordinates. We first assign each block to a column region using a recursive XY-cut, then order blocks within each region top-to-bottom and regions left-to-right. The reading-order score is",
+          "score": 3.58,
+          "contains_answer": false
+        }
+      ],
+      "answer_block": "p2-b03",
+      "answer_sentence_score": 0.616,
+      "note": "Answer is the sentence in the top-ranked grounded blocks that best matches the question; verify against the cited page/bbox before use."
+    }
+  ]
+}

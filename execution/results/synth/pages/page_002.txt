@@ -1,0 +1,27 @@
+4. Experiments
+
+We evaluate on DocBench-120, a collection of 120 papers from six publishers, of which 18 are scanned images without a text layer. Each paper was annotated by two students with block boundaries, reading order and table structure; disagreements were resolved by a third annotator. Table 2 reports the per-document-type breakdown. The runtime of the full pipeline is 1.8 s per page on a single CPU core, compared with 4.1 s for the strongest baseline, a 2.3× speed-up.
+
+4.1. Ablation
+
+Removing the column detection lowers text F1 from 0.982 to 0.791, confirming that ordering errors dominate the error budget. Removing the table merge step lowers cell accuracy from 0.941 to 0.863. Both components are therefore necessary; neither alone suffices.
+
+Table 2. Results by document type (continues on the next page).
+
+Document type Count Text F1 Born-digital, 1 column 31 0.991 Born-digital, 2 columns 48 0.985 Born-digital, ≥3 columns 23 0.962
+
+Table 2 (continued)
+
+5. Discussion
+
+The remaining errors concentrate in three areas: equations set with custom math fonts whose ToUnicode map is missing, tables whose ruling lines are drawn as very light gray and fall below the threshold, and running headers that change between pages. We consider the first the most important: a missing ToUnicode map makes an equation unreadable regardless of the layout model, and the only honest output is to report the region as unreadable with its bounding box.
+
+Limitations. Our evaluation covers English only. Scripts without spaces and vertical writing need a different line-segmentation stage. The pipeline also does not currently interpret chart data; figures are reported as blocks with their captions and a placeholder, which is sufficient for question answering about the caption but not about the plotted values.
+
+6. Conclusion
+
+A layout-first pipeline with explicit grounding turns a PDF into a structure that downstream agents can cite. We release the code and the annotation guidelines.
+
+1 A preliminary version of this work appeared in the workshop proceedings of DocEng 2025.
+
+* Corresponding author: j.doe@example.edu

@@ -1,0 +1,55 @@
+{
+  "ran_at": "2026-11-25T20:40:22+0800",
+  "python": "3.12.14",
+  "cases": {
+    "synth": {
+      "state": "success",
+      "pages": "3/3",
+      "checks": {
+        "state_success": true,
+        "title_exact": true,
+        "authors_exact": true,
+        "sections_l1": true,
+        "sections_l2": true,
+        "tables_count": true,
+        "table1_header_multilevel": true,
+        "table1_ours_row": true,
+        "equation_tag": true,
+        "references_count": true,
+        "table2_continued": true,
+        "reading_order_headings": true,
+        "qa:What is the table cell accur": true,
+        "qa:How many scanned papers are ": true,
+        "qa:What is the running time per": true
+      },
+      "passed": 15,
+      "total": 15
+    },
+    "scan": {
+      "state": "failed",
+      "pages_ocr": [],
+      "pages_unreadable": [
+        1,
+        2,
+        3
+      ],
+      "checks": {
+        "honest_degradation_without_ocr": true,
+        "ocr_path_when_available": true
+      },
+      "passed": 2,
+      "total": 2
+    },
+    "missing_pdf": {
+      "state": "failed",
+      "reason": "input PDF not found (case=D:\\DSH default\\challenge\\skill\\execution\\results\\_work_synth\\case_missing.json, pdf=None)",
+      "checks": {
+        "failed_result_written_no_fallback": true
+      },
+      "passed": 1,
+      "total": 1
+    }
+  },
+  "wall_time_s": 3.11,
+  "elapsed_s": 3.11
+}

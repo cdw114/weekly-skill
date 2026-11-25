@@ -1,0 +1,49 @@
+Attention-free parsing of scientific PDFs: a layout-first approach
+
+Jane Doe a, John Smith b, Wei Zhang a
+
+a Department of Computer Science, Example University, Cambridge, UK b Institute for Document Intelligence, Shanghai, China
+
+A R T I C L E   I N F O
+
+Article history: Received 3 March 2026; Received in revised form 21 May 2026; Accepted 2 June 2026 Keywords: document parsing; reading order; layout analysis; tables; OCR
+
+A B S T R A C T We present a layout-first pipeline that converts scientific PDFs into structured, page-grounded documents. Instead of relying on a single text-extraction pass, the pipeline segments each page into blocks, classifies them, orders them by a column-aware reading-order model, and reconstructs tables and equations as structured objects. On a benchmark of 120 papers, the method reaches a word-level F1 of 0.982 and a table cell accuracy of 0.941, outperforming the strongest baseline by 3.4 points.
+
+1. Introduction
+
+The volume of scientific literature grows faster than any researcher can read. Automated assistants that summarize, translate or answer questions over papers therefore depend on a faithful conversion of the PDF into text and structure. Yet the Portable Document Format was never designed to carry semantics: it is a page-description language in which glyphs are placed at absolute coordinates, and the logical structure is at best an optional tag.
+
+Naive extraction that sorts glyphs by their vertical position interleaves the two columns of a double-column page, producing sentences that read "the model was trained on 12,431 pairs of images and achieves state-of-the-art results" out of two unrelated paragraphs. Downstream translation and question answering then inherit these errors silently. This paper argues that the ordering problem must be solved at the level of layout blocks rather than individual characters, and that every extracted span should carry a pointer back to the page region it came from.
+
+1.1. Contributions
+
+(i) A column-aware reading-order algorithm that handles
+
+cross-column floats and cross-page paragraphs. (ii) A table reconstructor that resolves merged cells and multi-level headers into a rectangular grid with explicit spans. (iii) A grounding layer that attaches page and bounding box to every output element, and marks unreadable regions instead of guessing.1
+
+Figure 1. Overview of the pipeline. Pages are segmented into blocks, blocks are classified, then ordered.
+
+[ figure placeholder : pipeline diagram ]
+
+2. Related work
+
+Early systems such as pdftotext exposed the content stream in drawing order, which is correct only for single-column documents produced by well-behaved tools. Poppler and MuPDF later added layout modes that detect columns from the horizontal projection of text lines. Machine-learning approaches, notably LayoutLM and its successors, treat layout analysis as a detection problem and learn block classes from annotated corpora. Commercial systems integrate OCR for scanned inputs but typically hide the confidence of each recognized span.
+
+Our work differs in two respects. First, we treat reading order as a function of block geometry only, without a learned model, which keeps the pipeline reproducible across versions. Second, we make uncertainty explicit: regions that cannot be read are reported with their location and a reason rather than filled with a guess.
+
+3. Method
+
+Let a page be a set of blocks B = {b1, ..., bn} with bounding boxes in page coordinates. We first assign each block to a column region using a recursive XY-cut, then order blocks within each region top-to-bottom and regions left-to-right. The reading-order score is
+
+R = Σ_i  w_i · log p(b_i | b_<i)      (1)
+
+where w_i is a salience weight and p is a position prior. For tables, we extract the ruling lines, intersect them to form cells, and merge cells whose shared border is missing. Greek letters and subscripts are recovered from font metadata: the temperature parameter θ and the learning rate η{sub}t{/sub} are emitted as Unicode; the activation is
+
+σ(x) = 1 / (1 + e{sup}−x{/sup}), with α = 0.01 and ΔG = −12.4 kJ mol{sup}−1{/sup}.
+
+Table 1. Comparison with baselines on the DocBench-120 test set.
+
+Method Accuracy (%) Text F1 Table cell pdftotext -layout 0.871 0.612 Poppler layout 0.893 0.704 LayoutLM-base 0.948 0.907 Ours 0.982 0.941
+
+Best results in bold. All numbers are averages over three seeds.

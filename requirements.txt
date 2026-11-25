@@ -1,0 +1,9 @@
+# Required (Harbor image ships PyMuPDF as part of pdf-text-tool; keep pinned range for reproducibility)
+pymupdf>=1.23.0,<2
+
+# Optional: OCR fallback for scanned pages (no system deps). Install if cases may include scans.
+# rapidocr_onnxruntime>=1.3.0
+
+# Optional alternatives (any one is enough)
+# paddleocr
+# pytesseract   (needs the tesseract binary + language data)

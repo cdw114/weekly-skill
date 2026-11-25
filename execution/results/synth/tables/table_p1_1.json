@@ -1,0 +1,277 @@
+{
+  "id": "p1-b25",
+  "number": "1",
+  "page": 1,
+  "bbox": [
+    308.98,
+    693.92,
+    552.76,
+    790.3
+  ],
+  "caption": "Comparison with baselines on the DocBench-120 test set.",
+  "caption_block": "p1-b24",
+  "row_count": 6,
+  "col_count": 3,
+  "header_rows": 2,
+  "grid": [
+    [
+      "Method",
+      "Accuracy (%)",
+      null
+    ],
+    [
+      "",
+      "Text F1",
+      "Table cell"
+    ],
+    [
+      "pdftotext -layout",
+      "0.871",
+      "0.612"
+    ],
+    [
+      "Poppler layout",
+      "0.893",
+      "0.704"
+    ],
+    [
+      "LayoutLM-base",
+      "0.948",
+      "0.907"
+    ],
+    [
+      "Ours",
+      "0.982",
+      "0.941"
+    ]
+  ],
+  "cells": [
+    {
+      "text": "Method",
+      "bbox": [
+        308.98,
+        693.92,
+        405.36,
+        710.93
+      ],
+      "row": 0,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Accuracy (%)",
+      "bbox": [
+        405.36,
+        693.92,
+        552.76,
+        710.93
+      ],
+      "row": 0,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "",
+      "bbox": [
+        308.98,
+        710.93,
+        405.36,
+        727.94
+      ],
+      "row": 1,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Text F1",
+      "bbox": [
+        405.36,
+        710.93,
+        479.05,
+        727.94
+      ],
+      "row": 1,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Table cell",
+      "bbox": [
+        479.05,
+        710.93,
+        552.76,
+        727.94
+      ],
+      "row": 1,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "pdftotext -layout",
+      "bbox": [
+        308.98,
+        727.94,
+        405.36,
+        743.53
+      ],
+      "row": 2,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.871",
+      "bbox": [
+        405.36,
+        727.94,
+        479.05,
+        743.53
+      ],
+      "row": 2,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.612",
+      "bbox": [
+        479.05,
+        727.94,
+        552.76,
+        743.53
+      ],
+      "row": 2,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Poppler layout",
+      "bbox": [
+        308.98,
+        743.53,
+        405.36,
+        759.12
+      ],
+      "row": 3,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.893",
+      "bbox": [
+        405.36,
+        743.53,
+        479.05,
+        759.12
+      ],
+      "row": 3,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.704",
+      "bbox": [
+        479.05,
+        743.53,
+        552.76,
+        759.12
+      ],
+      "row": 3,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "LayoutLM-base",
+      "bbox": [
+        308.98,
+        759.12,
+        405.36,
+        774.71
+      ],
+      "row": 4,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.948",
+      "bbox": [
+        405.36,
+        759.12,
+        479.05,
+        774.71
+      ],
+      "row": 4,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.907",
+      "bbox": [
+        479.05,
+        759.12,
+        552.76,
+        774.71
+      ],
+      "row": 4,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Ours",
+      "bbox": [
+        308.98,
+        774.71,
+        405.36,
+        790.3
+      ],
+      "row": 5,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.982",
+      "bbox": [
+        405.36,
+        774.71,
+        479.05,
+        790.3
+      ],
+      "row": 5,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.941",
+      "bbox": [
+        479.05,
+        774.71,
+        552.76,
+        790.3
+      ],
+      "row": 5,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    }
+  ],
+  "markdown": "| Method | Accuracy (%) |  |\n|---|---|---|\n|  | Text F1 | Table cell |\n| pdftotext -layout | 0.871 | 0.612 |\n| Poppler layout | 0.893 | 0.704 |\n| LayoutLM-base | 0.948 | 0.907 |\n| Ours | 0.982 | 0.941 |",
+  "html": "<table>\n <tr>\n  <th>Method</th>\n  <th>Accuracy (%)</th>\n </tr>\n <tr>\n  <th></th>\n  <th>Text F1</th>\n  <th>Table cell</th>\n </tr>\n <tr>\n  <td>pdftotext -layout</td>\n  <td>0.871</td>\n  <td>0.612</td>\n </tr>\n <tr>\n  <td>Poppler layout</td>\n  <td>0.893</td>\n  <td>0.704</td>\n </tr>\n <tr>\n  <td>LayoutLM-base</td>\n  <td>0.948</td>\n  <td>0.907</td>\n </tr>\n <tr>\n  <td>Ours</td>\n  <td>0.982</td>\n  <td>0.941</td>\n </tr>\n</table>",
+  "continued_from": null,
+  "continued_by": 1,
+  "extraction": "pymupdf.find_tables",
+  "flags": []
+}

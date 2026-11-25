@@ -1,0 +1,9 @@
+# generated at runtime by examples/make_synth.py — not source
+examples/synth_paper.pdf
+examples/synth_paper_scan.pdf
+
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db

@@ -1,0 +1,18 @@
+{
+  "case_id": "missing-pdf-neg",
+  "status": {
+    "state": "failed",
+    "reason": "input PDF not found (case=D:\\DSH default\\challenge\\skill\\execution\\results\\_work_synth\\case_missing.json, pdf=None)",
+    "notes": [
+      "input PDF not found (case=D:\\DSH default\\challenge\\skill\\execution\\results\\_work_synth\\case_missing.json, pdf=None)"
+    ]
+  },
+  "result": null,
+  "evidence": [],
+  "uncertainty": {
+    "not_done": [
+      "parse"
+    ]
+  },
+  "changes": []
+}

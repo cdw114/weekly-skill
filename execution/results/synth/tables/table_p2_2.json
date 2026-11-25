@@ -1,0 +1,202 @@
+{
+  "id": "p2-b07",
+  "number": "2",
+  "page": 2,
+  "bbox": [
+    42.52,
+    291.4,
+    286.3,
+    355.18
+  ],
+  "caption": "(continued)",
+  "caption_block": "p2-b08",
+  "row_count": 4,
+  "col_count": 3,
+  "header_rows": 1,
+  "grid": [
+    [
+      "Document type",
+      "Count",
+      "Text F1"
+    ],
+    [
+      "Born-digital, 1 column",
+      "31",
+      "0.991"
+    ],
+    [
+      "Born-digital, 2 columns",
+      "48",
+      "0.985"
+    ],
+    [
+      "Born-digital, ≥3 columns",
+      "23",
+      "0.962"
+    ]
+  ],
+  "cells": [
+    {
+      "text": "Document type",
+      "bbox": [
+        42.52,
+        291.4,
+        155.91,
+        308.41
+      ],
+      "row": 0,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Count",
+      "bbox": [
+        155.91,
+        291.4,
+        221.11,
+        308.41
+      ],
+      "row": 0,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Text F1",
+      "bbox": [
+        221.11,
+        291.4,
+        286.3,
+        308.41
+      ],
+      "row": 0,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Born-digital, 1 column",
+      "bbox": [
+        42.52,
+        308.41,
+        155.91,
+        324.0
+      ],
+      "row": 1,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "31",
+      "bbox": [
+        155.91,
+        308.41,
+        221.11,
+        324.0
+      ],
+      "row": 1,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.991",
+      "bbox": [
+        221.11,
+        308.41,
+        286.3,
+        324.0
+      ],
+      "row": 1,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Born-digital, 2 columns",
+      "bbox": [
+        42.52,
+        324.0,
+        155.91,
+        339.59
+      ],
+      "row": 2,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "48",
+      "bbox": [
+        155.91,
+        324.0,
+        221.11,
+        339.59
+      ],
+      "row": 2,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.985",
+      "bbox": [
+        221.11,
+        324.0,
+        286.3,
+        339.59
+      ],
+      "row": 2,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "Born-digital, ≥3 columns",
+      "bbox": [
+        42.52,
+        339.59,
+        155.91,
+        355.18
+      ],
+      "row": 3,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "23",
+      "bbox": [
+        155.91,
+        339.59,
+        221.11,
+        355.18
+      ],
+      "row": 3,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1
+    },
+    {
+      "text": "0.962",
+      "bbox": [
+        221.11,
+        339.59,
+        286.3,
+        355.18
+      ],
+      "row": 3,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1
+    }
+  ],
+  "markdown": "| Document type | Count | Text F1 |\n|---|---|---|\n| Born-digital, 1 column | 31 | 0.991 |\n| Born-digital, 2 columns | 48 | 0.985 |\n| Born-digital, ≥3 columns | 23 | 0.962 |",
+  "html": "<table>\n <tr>\n  <th>Document type</th>\n  <th>Count</th>\n  <th>Text F1</th>\n </tr>\n <tr>\n  <td>Born-digital, 1 column</td>\n  <td>31</td>\n  <td>0.991</td>\n </tr>\n <tr>\n  <td>Born-digital, 2 columns</td>\n  <td>48</td>\n  <td>0.985</td>\n </tr>\n <tr>\n  <td>Born-digital, ≥3 columns</td>\n  <td>23</td>\n  <td>0.962</td>\n </tr>\n</table>",
+  "continued_from": 0,
+  "continued_by": 2,
+  "extraction": "pymupdf.find_tables",
+  "flags": []
+}
